@@ -5,9 +5,103 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 #include <iterator>
+#include <numeric>
 #include <random>
 #include <vector>
+
+constexpr double PI = 3.1415926535897;
+
+constexpr double GaussianSigmaForDefocus(double defocus_um,
+                                         double numericalAperture,
+                                         double refractiveIndex) {
+    const auto radius =
+        numericalAperture * std::fabs(defocus_um) / refractiveIndex;
+    // Apply an (arbitrary) multiplier and minimum.
+    return 0.5 * radius + 1.0;
+}
+
+inline float UnnormalizedGaussian(float x, float sigma) {
+    return std::exp(-(x * x) / (2.0f * sigma * sigma));
+}
+
+inline std::vector<float> GaussianKernel(std::size_t kernelRadius,
+                                         float sigma) {
+    const auto kernelSize = 2 * kernelRadius + 1;
+    std::vector<float> kernel(kernelSize);
+    if (sigma < 1e-6) {
+        kernel[kernelRadius] = 1.0f;
+        return kernel;
+    }
+
+    std::vector<std::intptr_t> indices(kernelSize);
+    std::iota(indices.begin(), indices.end(),
+              -static_cast<intptr_t>(kernelRadius));
+    std::transform(
+        indices.begin(), indices.end(), kernel.begin(),
+        [sigma](float i) { return UnnormalizedGaussian(i, sigma); });
+    const auto sum = std::accumulate(kernel.begin(), kernel.end(), 0.0f);
+    const auto norm = 1.0f / sum;
+    std::for_each(kernel.begin(), kernel.end(),
+                  [norm](float &e) { e *= norm; });
+    return kernel;
+}
+
+template <typename T>
+void HConvolve(T *data, std::size_t width, std::size_t height, const T *kernel,
+               std::size_t kernelRadius) {
+    const std::size_t kernelSize = 2 * kernelRadius + 1;
+    std::vector<T> paddedRow(kernelRadius + width + kernelRadius);
+    for (std::size_t j = 0; j < height; ++j) {
+        // Copy to paddedRow with reflecting boundary condition.
+        const auto rowBegin = std::next(data, j * width);
+        const auto rowEnd = std::next(data, (j + 1) * width);
+        std::reverse_copy(std::next(rowBegin, 1),
+                          std::next(rowBegin, 1 + kernelRadius),
+                          paddedRow.begin());
+        std::copy(rowBegin, rowEnd,
+                  std::next(paddedRow.begin(), kernelRadius));
+        std::reverse_copy(std::prev(rowEnd, 1 + kernelRadius),
+                          std::prev(rowEnd, 1),
+                          std::prev(paddedRow.end(), kernelRadius));
+
+        for (std::size_t i = 0; i < width; ++i) {
+            data[i + j * width] =
+                std::inner_product(kernel, std::next(kernel, kernelSize),
+                                   std::next(paddedRow.begin(), i), T(0));
+        }
+    }
+}
+
+template <typename T>
+void VConvolve(T *data, std::size_t width, std::size_t height, const T *kernel,
+               std::size_t kernelRadius) {
+    const std::size_t kernelSize = 2 * kernelRadius + 1;
+    std::vector<T> column(height); // Copy for simpler algorithm use.
+    std::vector<T> paddedCol(kernelRadius + height + kernelRadius);
+    for (std::size_t i = 0; i < width; ++i) {
+        for (std::size_t j = 0; j < height; ++j) {
+            column[j] = data[i + j * width];
+        }
+
+        // Copy to paddedCol with reflecting boundary condition.
+        std::reverse_copy(std::next(column.begin(), 1),
+                          std::next(column.begin(), 1 + kernelRadius),
+                          paddedCol.begin());
+        std::copy(column.begin(), column.end(),
+                  std::next(paddedCol.begin(), kernelRadius));
+        std::reverse_copy(std::prev(column.end(), 1 + kernelRadius),
+                          std::prev(column.end(), 1),
+                          std::prev(paddedCol.end(), kernelRadius));
+
+        for (std::size_t j = 0; j < height; ++j) {
+            data[i + j * width] =
+                std::inner_product(kernel, std::next(kernel, kernelSize),
+                                   std::next(paddedCol.begin(), j), T(0));
+        }
+    }
+}
 
 template <typename T> class SimulatedSpecimen {
     struct Filament {
@@ -62,8 +156,7 @@ template <typename T> class SimulatedSpecimen {
         using std::sin;
         std::mt19937 rng;
         std::normal_distribution<> xy0Distrib(0.0, 1000.0);
-        std::uniform_real_distribution<> thetaDistrib(
-            0.0, 2.0 * 3.14159265358979323846);
+        std::uniform_real_distribution<> thetaDistrib(0.0, 2.0 * PI);
         std::exponential_distribution<> lenDistrib(1e-3);
         for (int i = 0; i < 1000; ++i) {
             const double x0 = xy0Distrib(rng);
@@ -121,10 +214,24 @@ template <typename T> class SimulatedSpecimen {
             }
         }
 
-        // TODO Defocus (gaussian approx)
-        (void)z_um;
-        // TODO Intensity from exposure (and binning) (and dark offset)
+        const auto sigmaUm = GaussianSigmaForDefocus(z_um, 1.4, 1.33);
+        const auto sigmaPixels = sigmaUm / um_per_px;
+
+        // 3-sigma kernel radius, but max out at image size.
+        const auto threeSigma =
+            static_cast<std::intptr_t>(std::ceil(3.0 * sigmaPixels));
+        const auto maxDim =
+            static_cast<std::intptr_t>(std::max(width, height));
+        const auto kernelRadius = std::min(threeSigma, maxDim);
+
+        // Convolve in two 1D steps
+        const auto kernel = GaussianKernel(kernelRadius, float(sigmaPixels));
+        HConvolve(fImage.data(), width, height, kernel.data(), kernelRadius);
+        VConvolve(fImage.data(), width, height, kernel.data(), kernelRadius);
+
+        // TODO Intensity scaling with (exposure * binning^2)
         // TODO Add shot noise and read noise
+        // TODO Dark offset (adjustable?)
 
         std::transform(fImage.begin(), fImage.end(), buffer, [](float v) {
             return static_cast<T>(std::clamp(

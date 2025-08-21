@@ -13,8 +13,10 @@ project(
 
 mmdevice_dep = dependency('mmdevice')
 
-asmjit_dep = dependency('asmjit')
-blend2d_dep = dependency('blend2d')
+asmjit_dep = dependency('asmjit', include_type: 'system')
+blend2d_dep = dependency('blend2d', include_type: 'system')
+
+catch2_with_main_dep = dependency('catch2-with-main', include_type: 'system')
 
 sources = [
     'DeviceAdapter.cpp',
@@ -41,3 +43,18 @@ shared_module(
     name_prefix: '',
     name_suffix: 'mmdev',
 )
+
+test_exe = executable(
+    'test_SimulatedCamera',
+    sources + [
+        'test_SimulatedCamera.cpp',
+    ],
+    dependencies: [
+        mmdevice_dep,
+        blend2d_dep,
+        catch2_with_main_dep,
+    ],
+    cpp_args: cpp_args,
+)
+
+test('SimulatedCamera tests', test_exe)
