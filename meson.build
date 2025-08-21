@@ -17,7 +17,7 @@ asmjit_dep = dependency('asmjit')
 blend2d_dep = dependency('blend2d')
 
 sources = [
-    'SimulatedCamera.cpp',
+    'DeviceAdapter.cpp',
     'SimHub.cpp',
 ]
 
