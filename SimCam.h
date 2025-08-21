@@ -62,6 +62,8 @@ class SimCam : public CCameraBase<SimCam> {
     unsigned GetBitDepth() const final { return 16; }
 
     int SnapImage() final {
+        const auto startTime = std::chrono::steady_clock::now();
+
         auto *hub = static_cast<SimHub *>(GetParentHub());
         const auto z = hub->GetFocusUm();
         const auto xy = hub->GetXYUm();
@@ -77,6 +79,10 @@ class SimCam : public CCameraBase<SimCam> {
         const double intensity = GetExposure() * GetBinning() * GetBinning();
         specimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_, roiHeight_,
                        umPerPx, intensity);
+
+        const auto exposure_us = std::llround(1000.0 * GetExposure());
+        std::this_thread::sleep_until(startTime +
+                                      std::chrono::microseconds(exposure_us));
 
         return DEVICE_OK;
     }
