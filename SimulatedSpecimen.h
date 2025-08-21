@@ -230,12 +230,13 @@ template <typename T> class SimulatedSpecimen {
         HConvolve(fImage.data(), width, height, kernel.data(), kernelRadius);
         VConvolve(fImage.data(), width, height, kernel.data(), kernelRadius);
 
-        std::for_each(
-            fImage.begin(), fImage.end(),
-            [intensity = float(intensity)](float &p) { p *= intensity; });
-
-        // TODO Add shot noise and read noise
-        // TODO Dark offset (adjustable?)
+        std::for_each(fImage.begin(), fImage.end(),
+                      [intensity = float(intensity)](float &p) {
+                          p *= intensity;
+                          // TODO Add shot noise
+                          // TODO Add read noise
+                          p += 100.0f; // Dark offset (TODO adjustable?)
+                      });
 
         std::transform(fImage.begin(), fImage.end(), buffer, [](float v) {
             return static_cast<T>(std::clamp(
