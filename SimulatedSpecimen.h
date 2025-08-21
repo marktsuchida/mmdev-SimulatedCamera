@@ -170,7 +170,8 @@ template <typename T> class SimulatedSpecimen {
     }
 
     void Draw(T *buffer, double x_um, double y_um, double z_um,
-              std::size_t width, std::size_t height, double um_per_px) {
+              std::size_t width, std::size_t height, double um_per_px,
+              double intensity) {
         const double left = x_um;
         const double top = y_um;
         const double right = x_um + width * um_per_px;
@@ -229,7 +230,10 @@ template <typename T> class SimulatedSpecimen {
         HConvolve(fImage.data(), width, height, kernel.data(), kernelRadius);
         VConvolve(fImage.data(), width, height, kernel.data(), kernelRadius);
 
-        // TODO Intensity scaling with (exposure * binning^2)
+        std::for_each(
+            fImage.begin(), fImage.end(),
+            [intensity = float(intensity)](float &p) { p *= intensity; });
+
         // TODO Add shot noise and read noise
         // TODO Dark offset (adjustable?)
 
