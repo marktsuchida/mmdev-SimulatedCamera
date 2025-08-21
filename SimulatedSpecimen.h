@@ -111,20 +111,24 @@ template <typename T> class SimulatedSpecimen {
         const auto *pix = static_cast<const std::uint32_t *>(data.pixelData);
 
         // Stride is the stride of scanlines; negative stride means bottom-up.
+        std::vector<float> fImage(width * height);
         const auto stride = data.stride / sizeof(std::uint32_t);
         const auto start = stride >= 0 ? 0 : (height - 1) * (-stride);
         for (std::intptr_t j = 0; j < std::intptr_t(height); ++j) {
             for (std::intptr_t i = 0; i < std::intptr_t(width); ++i) {
                 const auto p = pix[start + i + j * stride];
-                buffer[i + j * width] = (p >> 8) & 0xff;
+                fImage[i + j * width] = (p >> 8) & 0xff; // Green sample
             }
         }
 
-        // TODO Use float[] intermediate for:
         // TODO Defocus (gaussian approx)
         (void)z_um;
-        // TODO Intensity from exposure (and dark offset)
+        // TODO Intensity from exposure (and binning) (and dark offset)
         // TODO Add shot noise and read noise
-        // TODO Convert to u8 or u16
+
+        std::transform(fImage.begin(), fImage.end(), buffer, [](float v) {
+            return static_cast<T>(std::clamp(
+                std::roundf(v), 0.0f, float(std::numeric_limits<T>::max())));
+        });
     }
 };
