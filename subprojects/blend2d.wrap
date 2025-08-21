@@ -1,0 +1,9 @@
+[wrap-git]
+url = https://github.com/blend2d/blend2d.git
+revision = 007bf4828120dd1f5a3fd17d73c8cd7137155494
+depth = 1
+directory = blend2d-007bf48
+patch_directory = blend2d-007bf48
+
+[provide]
+blend2d = blend2d_dep

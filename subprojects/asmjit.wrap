@@ -1,0 +1,9 @@
+[wrap-git]
+url = https://github.com/asmjit/asmjit
+revision = a3199e8857792cd10b7589ff5d58343d2c9008ea
+depth = 1
+directory = asmjit-a3199e8
+patch_directory = asmjit-a3199e8
+
+[provide]
+asmjit = asmjit_dep
