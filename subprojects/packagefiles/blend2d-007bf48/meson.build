@@ -254,6 +254,8 @@ endif
 if cxx.get_id() == 'clang'
     blend2d_cpp_args += '-Wno-gnu-anonymous-struct'
     blend2d_cpp_args += '-Wno-nested-anon-types'
+elif cxx.get_id() == 'gcc'
+    blend2d_cpp_args += '-Wno-pedantic'  # anonymous structs
 endif
 
 blend2d_lib = static_library(

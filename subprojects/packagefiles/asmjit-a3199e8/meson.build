@@ -80,6 +80,8 @@ asmjit_cpp_args = [
 if cxx.get_id() == 'clang'
     asmjit_cpp_args += '-Wno-gnu-anonymous-struct'
     asmjit_cpp_args += '-Wno-nested-anon-types'
+elif cxx.get_id() == 'gcc'
+    asmjit_cpp_args += '-Wno-pedantic'  # anonymous structs
 endif
 
 asmjit_lib = static_library(
