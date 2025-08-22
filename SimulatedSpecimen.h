@@ -114,46 +114,6 @@ template <typename T> class SimulatedSpecimen {
     std::mt19937 rng_;
     std::vector<Filament> filaments_;
 
-    static bool PointInRect(double x, double y, double left, double top,
-                            double right, double bottom) {
-        return x >= left && x <= right && y >= top && y <= bottom;
-    }
-
-    static bool LineSegmentsIntersect(const Filament &s0, const Filament &s1) {
-        const std::array<double, 2> d0{s0.x1 - s0.x0, s0.y1 - s0.y0};
-        const std::array<double, 2> d1{s1.x1 - s1.x0, s1.y1 - s1.y0};
-        const std::array<double, 2> d01{s1.x0 - s0.x0, s1.y0 - s0.y0};
-        const double wedge01 = d0[0] * d1[1] - d0[1] * d1[0];
-        if (std::fabs(wedge01) < 1e-12) { // Parallel
-            return false;
-        }
-        // Solve for parameter values at intersecting point:
-        const double t0 = (d1[0] * d01[1] - d1[1] * d01[0]) / wedge01;
-        const double t1 = (d0[0] * d01[1] - d0[1] * d01[0]) / wedge01;
-        // Intersection lies within segments:
-        return t0 >= 0.0 && t0 <= 1.0 && t1 >= 0.0 && t1 <= 1.0;
-    }
-
-    std::vector<Filament> PrunedFilaments(double left, double top,
-                                          double right, double bottom) {
-        const Filament leftSeg{left, top, left, bottom};
-        const Filament topSeg{left, top, right, top};
-        const Filament rightSeg{right, top, right, bottom};
-        const Filament bottomSeg{left, bottom, right, bottom};
-        std::vector<Filament> ret;
-        std::copy_if(
-            filaments_.begin(), filaments_.end(), std::back_inserter(ret),
-            [&](const Filament &f) {
-                return PointInRect(f.x0, f.x1, left, top, right, bottom) ||
-                       PointInRect(f.x1, f.y1, left, top, right, bottom) ||
-                       LineSegmentsIntersect(f, leftSeg) ||
-                       LineSegmentsIntersect(f, topSeg) ||
-                       LineSegmentsIntersect(f, rightSeg) ||
-                       LineSegmentsIntersect(f, bottomSeg);
-            });
-        return ret;
-    }
-
   public:
     explicit SimulatedSpecimen() {
         using std::cos;
@@ -175,12 +135,7 @@ template <typename T> class SimulatedSpecimen {
     void Draw(T *buffer, double x_um, double y_um, double z_um,
               std::size_t width, std::size_t height, double um_per_px,
               double intensity) {
-        const double left = x_um;
-        const double top = y_um;
-        const double right = x_um + width * um_per_px;
-        const double bottom = y_um + height * um_per_px;
-        // TODO Do we really need to prune? Might be unnecessary.
-        const auto filaments = PrunedFilaments(left, top, right, bottom);
+        const auto &filaments = filaments_;
 
         BLImage img(static_cast<int>(width), static_cast<int>(height),
                     BL_FORMAT_XRGB32);
