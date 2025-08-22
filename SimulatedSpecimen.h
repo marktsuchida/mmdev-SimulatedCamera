@@ -108,6 +108,7 @@ template <typename T> class SimulatedSpecimen {
         double x0, y0, x1, y1;
     };
 
+    std::mt19937 rng_;
     std::vector<Filament> filaments_;
 
     static bool PointInRect(double x, double y, double left, double top,
@@ -154,15 +155,14 @@ template <typename T> class SimulatedSpecimen {
     explicit SimulatedSpecimen() {
         using std::cos;
         using std::sin;
-        std::mt19937 rng;
         std::normal_distribution<> xy0Distrib(0.0, 1000.0);
         std::uniform_real_distribution<> thetaDistrib(0.0, 2.0 * PI);
         std::exponential_distribution<> lenDistrib(1e-3);
         for (int i = 0; i < 1000; ++i) {
-            const double x0 = xy0Distrib(rng);
-            const double y0 = xy0Distrib(rng);
-            const double theta = thetaDistrib(rng);
-            const double len = lenDistrib(rng);
+            const double x0 = xy0Distrib(rng_);
+            const double y0 = xy0Distrib(rng_);
+            const double theta = thetaDistrib(rng_);
+            const double len = lenDistrib(rng_);
             const double x1 = x0 + len * cos(theta);
             const double y1 = y0 + len * sin(theta);
             filaments_.push_back({x0, y0, x1, y1});
@@ -230,12 +230,27 @@ template <typename T> class SimulatedSpecimen {
         HConvolve(fImage.data(), width, height, kernel.data(), kernelRadius);
         VConvolve(fImage.data(), width, height, kernel.data(), kernelRadius);
 
+        // Gaussian (~read) noise; TODO Adjustable? Scale?
+        auto noiseDistrib = std::normal_distribution(0.0, 50.0);
+
         std::for_each(fImage.begin(), fImage.end(),
-                      [intensity = float(intensity)](float &p) {
-                          p *= intensity;
-                          // TODO Add shot noise
-                          // TODO Add read noise
-                          p += 100.0f; // Dark offset (TODO adjustable?)
+                      [this, intensity, &noiseDistrib](float &p) {
+                          double pp = p;
+
+                          pp *= intensity;
+
+                          // Shot noise
+                          auto shotDistrib =
+                              std::poisson_distribution<std::int64_t>(pp);
+                          pp = shotDistrib(rng_);
+
+                          // Gaussian noise
+                          pp += noiseDistrib(rng_);
+
+                          // Dark offset (TODO adjustable?)
+                          pp += 100.0;
+
+                          p = pp;
                       });
 
         std::transform(fImage.begin(), fImage.end(), buffer, [](float v) {

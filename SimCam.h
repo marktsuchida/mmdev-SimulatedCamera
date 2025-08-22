@@ -76,7 +76,8 @@ class SimCam : public CCameraBase<SimCam> {
         const double x = xy.first + umPerPx * double(roiX_);
         const double y = xy.second + umPerPx * double(roiY_);
         // TODO: Intensity could also change with objective mag and NA
-        const double intensity = GetExposure() * GetBinning() * GetBinning();
+        const double intensity =
+            0.05 * GetExposure() * GetBinning() * GetBinning();
         specimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_, roiHeight_,
                        umPerPx, intensity);
 
