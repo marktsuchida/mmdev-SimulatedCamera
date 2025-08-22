@@ -74,7 +74,9 @@ asmjit_inc = include_directories('src')
 
 cxx = meson.get_compiler('cpp')
 
-asmjit_cpp_args = []
+asmjit_cpp_args = [
+    '-DASMJIT_STATIC',
+]
 if cxx.get_id() == 'clang'
     asmjit_cpp_args += '-Wno-gnu-anonymous-struct'
     asmjit_cpp_args += '-Wno-nested-anon-types'
@@ -83,9 +85,7 @@ endif
 asmjit_lib = static_library(
     'asmjit',
     asmjit_sources,
-    cpp_args: asmjit_cpp_args + [
-        '-DASMJIT_STATIC',
-    ],
+    cpp_args: asmjit_cpp_args,
     gnu_symbol_visibility: 'inlineshidden',
 )
 

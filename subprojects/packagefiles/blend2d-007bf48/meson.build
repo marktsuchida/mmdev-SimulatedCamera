@@ -214,7 +214,9 @@ blend2d_inc = include_directories('src')
 
 cxx = meson.get_compiler('cpp')
 
-blend2d_cpp_args = []
+blend2d_cpp_args = [
+    '-DBL_STATIC',
+]
 
 if cxx.get_id() in ['gcc', 'clang']
     blend2d_cpp_args += [
