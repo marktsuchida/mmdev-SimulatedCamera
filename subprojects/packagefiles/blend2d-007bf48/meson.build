@@ -234,7 +234,7 @@ else
     blend2d_cpp_args += '-DBL_BUILD_DEBUG'
 endif
 if host_machine.cpu_family() == 'x86_64'
-    if cxx.get_id() in ['gcc', 'clang', 'clang-cl', 'cl']
+    if cxx.get_id() in ['gcc', 'clang', 'clang-cl', 'msvc']
         blend2d_cpp_args += [
             '-DBL_BUILD_OPT_SSE2',
             '-DBL_BUILD_OPT_SSE3',
@@ -242,7 +242,7 @@ if host_machine.cpu_family() == 'x86_64'
             '-DBL_BUILD_OPT_SSE4_1',
             '-DBL_BUILD_OPT_SSE4_2',
         ]
-        if cxx.get_id() in ['gcc', 'clang', 'cl']
+        if cxx.get_id() in ['gcc', 'clang', 'msvc']
             blend2d_cpp_args += [
                 '-DBL_BUILD_OPT_AVX',
                 '-DBL_BUILD_OPT_AVX2',
@@ -268,10 +268,10 @@ sse2_cpp_args = []
 if cxx.get_id() in ['gcc', 'clang']
     sse2_cpp_args += '-msse2'
 elif cxx.get_id() == 'msvc'
-    sse2_cpp_args += '-arch:SSE2'
+    sse2_cpp_args += '/arch:SSE2'
     sse2_cpp_args += '-D__SSE2__'
 elif cxx.get_id() == 'clang-cl'
-    sse2_cpp_args += '-arch:SSE2'
+    sse2_cpp_args += '/arch:SSE2'
 endif
 if sse2_cpp_args.length() != 0 and host_machine.cpu_family() == 'x86_64'
     sse2_lib = static_library(
@@ -288,10 +288,10 @@ ssse3_cpp_args = []
 if cxx.get_id() in ['gcc', 'clang']
     ssse3_cpp_args += '-mssse3'
 elif cxx.get_id() == 'msvc'
-    ssse3_cpp_args += '-arch:SSE2'
+    ssse3_cpp_args += '/arch:SSE2'
     ssse3_cpp_args += '-D__SSSE3__'
 elif cxx.get_id() == 'clang-cl'
-    ssse3_cpp_args += '-arch:SSE2'
+    ssse3_cpp_args += '/arch:SSE2'
     ssse3_cpp_args += '-mssse3'
 endif
 if ssse3_cpp_args.length() != 0 and host_machine.cpu_family() == 'x86_64'
@@ -309,10 +309,10 @@ sse4_1_cpp_args = []
 if cxx.get_id() in ['gcc', 'clang']
     sse4_1_cpp_args += '-msse4.1'
 elif cxx.get_id() == 'msvc'
-    sse4_1_cpp_args += '-arch:SSE2'
+    sse4_1_cpp_args += '/arch:SSE2'
     sse4_1_cpp_args += '-D__SSE4_1__'
 elif cxx.get_id() == 'clang-cl'
-    sse4_1_cpp_args += '-arch:SSE2'
+    sse4_1_cpp_args += '/arch:SSE2'
     sse4_1_cpp_args += '-msse4.1'
 endif
 if sse4_1_cpp_args.length() != 0 and host_machine.cpu_family() == 'x86_64'
@@ -331,10 +331,10 @@ if cxx.get_id() in ['gcc', 'clang']
     sse4_2_cpp_args += '-msse4.2'
     sse4_2_cpp_args += '-mpclmul'
 elif cxx.get_id() == 'msvc'
-    sse4_2_cpp_args += '-arch:SSE2'
+    sse4_2_cpp_args += '/arch:SSE2'
     sse4_2_cpp_args += '-D__SSE4_2__'
 elif cxx.get_id() == 'clang-cl'
-    sse4_2_cpp_args += '-arch:SSE2'
+    sse4_2_cpp_args += '/arch:SSE2'
     sse4_2_cpp_args += '-msse4.2'
     sse4_2_cpp_args += '-mpclmul'
 endif
@@ -353,7 +353,7 @@ avx_cpp_args = []
 if cxx.get_id() in ['gcc', 'clang']
     avx_cpp_args += '-mavx'
 elif cxx.get_id() == 'msvc'
-    avx_cpp_args += '-arch:AVX'
+    avx_cpp_args += '/arch:AVX'
 endif
 if avx_cpp_args.length() != 0 and host_machine.cpu_family() == 'x86_64'
     avx_lib = static_library(
@@ -370,7 +370,7 @@ avx2_cpp_args = []
 if cxx.get_id() in ['gcc', 'clang']
     avx2_cpp_args += '-mavx2'
 elif cxx.get_id() == 'msvc'
-    avx2_cpp_args += '-arch:AVX2'
+    avx2_cpp_args += '/arch:AVX2'
 endif
 if avx2_cpp_args.length() != 0 and host_machine.cpu_family() == 'x86_64'
     avx2_lib = static_library(
@@ -391,7 +391,7 @@ if cxx.get_id() in ['gcc', 'clang']
     avx512_cpp_args += '-mavx512cd'
     avx512_cpp_args += '-mavx512vl'
 elif cxx.get_id() == 'msvc'
-    avx512_cpp_args += '-arch:AVX512'
+    avx512_cpp_args += '/arch:AVX512'
 endif
 if avx512_cpp_args.length() != 0 and host_machine.cpu_family() == 'x86_64'
     avx512_lib = static_library(
@@ -415,6 +415,9 @@ blend2d_dep = declare_dependency(
         avx_lib,
         avx2_lib,
         avx512_lib,
+    ],
+    compile_args: [
+        '-DBL_STATIC',
     ],
 )
 meson.override_dependency('blend2d', blend2d_dep)

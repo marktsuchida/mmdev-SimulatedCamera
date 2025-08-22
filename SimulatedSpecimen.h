@@ -1,3 +1,5 @@
+#pragma once
+
 #include <blend2d.h>
 
 #include <algorithm>
@@ -13,9 +15,9 @@
 
 constexpr double PI = 3.1415926535897;
 
-constexpr double GaussianSigmaForDefocus(double defocus_um,
-                                         double numericalAperture,
-                                         double refractiveIndex) {
+inline double GaussianSigmaForDefocus(double defocus_um,
+                                      double numericalAperture,
+                                      double refractiveIndex) {
     const auto radius =
         numericalAperture * std::fabs(defocus_um) / refractiveIndex;
     // Apply an (arbitrary) multiplier and minimum.
@@ -38,9 +40,10 @@ inline std::vector<float> GaussianKernel(std::size_t kernelRadius,
     std::vector<std::intptr_t> indices(kernelSize);
     std::iota(indices.begin(), indices.end(),
               -static_cast<intptr_t>(kernelRadius));
-    std::transform(
-        indices.begin(), indices.end(), kernel.begin(),
-        [sigma](float i) { return UnnormalizedGaussian(i, sigma); });
+    std::transform(indices.begin(), indices.end(), kernel.begin(),
+                   [sigma](std::intptr_t i) {
+                       return UnnormalizedGaussian(float(i), sigma);
+                   });
     const auto sum = std::accumulate(kernel.begin(), kernel.end(), 0.0f);
     const auto norm = 1.0f / sum;
     std::for_each(kernel.begin(), kernel.end(),
@@ -179,7 +182,8 @@ template <typename T> class SimulatedSpecimen {
         // TODO Do we really need to prune? Might be unnecessary.
         const auto filaments = PrunedFilaments(left, top, right, bottom);
 
-        BLImage img(width, height, BL_FORMAT_XRGB32);
+        BLImage img(static_cast<int>(width), static_cast<int>(height),
+                    BL_FORMAT_XRGB32);
         BLContext ctx(img);
         ctx.clearAll();
 
@@ -206,12 +210,13 @@ template <typename T> class SimulatedSpecimen {
 
         // Stride is the stride of scanlines; negative stride means bottom-up.
         std::vector<float> fImage(width * height);
-        const auto stride = data.stride / sizeof(std::uint32_t);
-        const auto start = stride >= 0 ? 0 : (height - 1) * (-stride);
+        const std::intptr_t stride = data.stride / sizeof(std::uint32_t);
+        const std::intptr_t start = stride >= 0 ? 0 : (height - 1) * (-stride);
         for (std::intptr_t j = 0; j < std::intptr_t(height); ++j) {
             for (std::intptr_t i = 0; i < std::intptr_t(width); ++i) {
                 const auto p = pix[start + i + j * stride];
-                fImage[i + j * width] = (p >> 8) & 0xff; // Green sample
+                // Green sample
+                fImage[i + j * width] = static_cast<float>((p >> 8) & 0xff);
             }
         }
 
@@ -242,7 +247,7 @@ template <typename T> class SimulatedSpecimen {
                           // Shot noise
                           auto shotDistrib =
                               std::poisson_distribution<std::int64_t>(pp);
-                          pp = shotDistrib(rng_);
+                          pp = static_cast<double>(shotDistrib(rng_));
 
                           // Gaussian noise
                           pp += noiseDistrib(rng_);
@@ -250,7 +255,7 @@ template <typename T> class SimulatedSpecimen {
                           // Dark offset (TODO adjustable?)
                           pp += 100.0;
 
-                          p = pp;
+                          p = static_cast<float>(pp);
                       });
 
         std::transform(fImage.begin(), fImage.end(), buffer, [](float v) {

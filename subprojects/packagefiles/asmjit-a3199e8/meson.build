@@ -92,5 +92,8 @@ asmjit_lib = static_library(
 asmjit_dep = declare_dependency(
     include_directories: asmjit_inc,
     link_with: asmjit_lib,
+    compile_args: [
+        '-DASMJIT_STATIC',
+    ],
 )
 meson.override_dependency('asmjit', asmjit_dep)

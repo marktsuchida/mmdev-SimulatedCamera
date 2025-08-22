@@ -11,6 +11,12 @@ project(
     ],
 )
 
+cxx = meson.get_compiler('cpp')
+
+if cxx.get_id() in ['msvc', 'clang-cl']
+    add_project_arguments('-DNOMINMAX', language: 'cpp')
+endif
+
 mmdevice_dep = dependency('mmdevice')
 
 asmjit_dep = dependency('asmjit', include_type: 'system')
@@ -22,8 +28,6 @@ sources = [
     'DeviceAdapter.cpp',
     'SimHub.cpp',
 ]
-
-cxx = meson.get_compiler('cpp')
 
 cpp_args = []
 if cxx.get_id() == 'clang'
