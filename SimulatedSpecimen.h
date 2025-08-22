@@ -245,9 +245,11 @@ template <typename T> class SimulatedSpecimen {
                           pp *= intensity;
 
                           // Shot noise
-                          auto shotDistrib =
-                              std::poisson_distribution<std::int64_t>(pp);
-                          pp = static_cast<double>(shotDistrib(rng_));
+                          if (pp > 0.0) {
+                              auto shotDistrib =
+                                  std::poisson_distribution<std::int64_t>(pp);
+                              pp = static_cast<double>(shotDistrib(rng_));
+                          }
 
                           // Gaussian noise
                           pp += noiseDistrib(rng_);
