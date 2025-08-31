@@ -81,9 +81,10 @@ class SimCam : public CCameraBase<SimCam> {
         specimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_, roiHeight_,
                        umPerPx, intensity);
 
-        const auto exposure_us = std::llround(1000.0 * GetExposure());
-        std::this_thread::sleep_until(startTime +
-                                      std::chrono::microseconds(exposure_us));
+        std::chrono::duration<double, std::milli> exposure(GetExposure());
+        const auto finishTime = startTime +
+            std::chrono::round<decltype(startTime)::duration>(exposure);
+        std::this_thread::sleep_until(finishTime);
 
         return DEVICE_OK;
     }
