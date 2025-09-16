@@ -145,6 +145,12 @@ template <typename T> class SimulatedSpecimen {
         ctx.scale(1.0 / um_per_px);
         ctx.translate(x_um, -y_um);
 
+        BLPath origin_marker;
+        origin_marker.moveTo(0.0, 0.0);
+        origin_marker.lineTo(50.0, 50.0);
+        origin_marker.addCircle(BLCircle(0.0, 0.0, 50.0));
+        ctx.strokePath(origin_marker, BLRgba32(0xaaaaaaaa));
+
         for (const Filament &f : filaments) {
             BLPath path;
             path.moveTo(f.x0, f.y0);
