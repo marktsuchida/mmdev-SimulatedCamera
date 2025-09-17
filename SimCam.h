@@ -48,7 +48,27 @@ class SimCam : public CCameraBase<SimCam> {
         CDeviceUtils::CopyLimitedString(buf, name_.c_str());
     }
 
-    int Initialize() final { return DEVICE_OK; }
+    int Initialize() final {
+        CreateProperty(MM::g_Keyword_Exposure,
+                       std::to_string(exposure_ms_).c_str(), MM::Float, false,
+                       new MM::ActionLambda([this](MM::PropertyBase *pProp,
+                                                   MM::ActionType eAct) {
+                           if (eAct == MM::BeforeGet) {
+                               pProp->Set(GetExposure());
+                           } else if (eAct == MM::AfterSet) {
+                               double e{};
+                               pProp->Get(e);
+                               SetExposure(e);
+                           }
+                           return DEVICE_OK;
+                       }));
+        SetPropertyLimits(MM::g_Keyword_Exposure, 0.001, 10'000.0);
+
+        CreateProperty(MM::g_Keyword_Binning, "1", MM::Integer, false);
+        AddAllowedValue(MM::g_Keyword_Binning, "1");
+
+        return DEVICE_OK;
+    }
     int Shutdown() final { return DEVICE_OK; }
     bool Busy() final { return false; }
 
@@ -82,7 +102,8 @@ class SimCam : public CCameraBase<SimCam> {
                        umPerPx, intensity);
 
         std::chrono::duration<double, std::milli> exposure(GetExposure());
-        const auto finishTime = startTime +
+        const auto finishTime =
+            startTime +
             std::chrono::round<decltype(startTime)::duration>(exposure);
         std::this_thread::sleep_until(finishTime);
 
