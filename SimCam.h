@@ -73,8 +73,8 @@ class SimCam : public CCameraBase<SimCam> {
             std::unique_ptr<std::uint16_t[]>(new std::uint16_t[nPixels]);
 
         constexpr double umPerPx = 1.0; // TODO Objective/mag
-        const double x = xy.first + umPerPx * double(roiX_);
-        const double y = xy.second + umPerPx * double(roiY_);
+        const double x = xy.first - umPerPx * double(roiX_);
+        const double y = -xy.second - umPerPx * double(roiY_);
         // TODO: Intensity could also change with objective mag and NA
         const double intensity =
             0.05 * GetExposure() * GetBinning() * GetBinning();

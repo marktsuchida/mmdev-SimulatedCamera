@@ -143,7 +143,7 @@ template <typename T> class SimulatedSpecimen {
         ctx.clearAll();
 
         ctx.scale(1.0 / um_per_px);
-        ctx.translate(x_um, -y_um);
+        ctx.translate(x_um, y_um);
 
         BLPath origin_marker;
         origin_marker.moveTo(0.0, 0.0);
