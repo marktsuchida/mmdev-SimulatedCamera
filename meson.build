@@ -23,6 +23,8 @@ blend2d_dep = dependency('blend2d', include_type: 'system')
 
 catch2_with_main_dep = dependency('catch2-with-main', include_type: 'system')
 
+benchmark_dep = dependency('benchmark', include_type: 'system')
+
 sources = [
     'DeviceAdapter.cpp',
     'SimHub.cpp',
@@ -61,3 +63,17 @@ test_exe = executable(
 )
 
 test('SimulatedCamera tests', test_exe)
+
+bench_exe = executable(
+    'bench_SimulatedCamera',
+    [
+        'bench_SimulatedSpecimen.cpp',
+    ],
+    dependencies: [
+        blend2d_dep,
+        benchmark_dep,
+    ],
+    cpp_args: cpp_args,
+)
+
+benchmark('SimulatedCamera benchmarks', bench_exe)
