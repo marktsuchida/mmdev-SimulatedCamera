@@ -111,22 +111,21 @@ void VConvolve(T *data, std::size_t width, std::size_t height, const T *kernel,
 // - For small lambda: Knuth DE, The Art of Computer Programming, Volume 2:
 //   Seminumerical Algorithms, 3rd ed, section 3.4.1.F.3.
 // - For large lambda: Gaussian approximation N(lambda, sqrt(lambda))
-template <typename RNG>
-double FastPoisson(double lambda, RNG &rng,
-                   std::uniform_real_distribution<double> &uniformDist) {
-    if (lambda > 10.0) {
-        std::normal_distribution<double> gaussianDist(lambda,
-                                                      std::sqrt(lambda));
-        return std::max(0.0, gaussianDist(rng));
+template <typename F, typename RNG>
+F FastPoisson(F lambda, RNG &rng,
+              std::uniform_real_distribution<F> &uniformDist) {
+    if (lambda > F(10.0)) {
+        std::normal_distribution<F> gaussianDist(lambda, std::sqrt(lambda));
+        return std::max(F(0), gaussianDist(rng));
     } else {
-        double const L = std::exp(-lambda);
-        double p = 1.0;
+        F const L = std::exp(-lambda);
+        F p = 1.0;
         int k = 0;
         do {
             ++k;
             p *= uniformDist(rng);
         } while (p > L);
-        return static_cast<double>(k - 1);
+        return static_cast<F>(k - 1);
     }
 }
 
@@ -220,34 +219,32 @@ template <typename T> class SimulatedSpecimen {
         HConvolve(fImage.data(), width, height, kernel.data(), kernelRadius);
         VConvolve(fImage.data(), width, height, kernel.data(), kernelRadius);
 
-        // Gaussian (~read) noise; TODO Adjustable? Scale?
-        auto noiseDistrib = std::normal_distribution(0.0, 50.0);
+        // Scale by intensity
+        std::for_each(fImage.begin(), fImage.end(),
+                      [i = float(intensity)](float &p) { p *= i; });
 
+        // Shot noise
         auto uniformDistForPoisson =
-            std::uniform_real_distribution<double>(0.0, 1.0);
-
+            std::uniform_real_distribution<float>(0.0, 1.0);
         std::for_each(fImage.begin(), fImage.end(), [&](float &p) {
-            double pp = p;
-
-            pp *= intensity;
-
-            // Shot noise
-            if (pp > 0.0) {
-                pp = FastPoisson(pp, rng_, uniformDistForPoisson);
+            if (p > 0.0f) {
+                p = FastPoisson(p, rng_, uniformDistForPoisson);
             }
-
-            // Gaussian noise
-            pp += noiseDistrib(rng_);
-
-            // Dark offset (TODO adjustable?)
-            pp += 100.0;
-
-            p = static_cast<float>(pp);
         });
 
+        // Gaussian (~read) noise (TODO Adjustable? Scale?)
+        auto noiseDistrib = std::normal_distribution<float>(0.0, 50.0);
+        std::for_each(fImage.begin(), fImage.end(),
+                      [&](float &p) { p += noiseDistrib(rng_); });
+
+        // Dark offset (TODO adjustable?)
+        std::for_each(fImage.begin(), fImage.end(),
+                      [](float &p) { p += 100.0f; });
+
+        // Clamp to pixel type range
         std::transform(fImage.begin(), fImage.end(), buffer, [](float v) {
             return static_cast<T>(std::clamp(
-                std::roundf(v), 0.0f, float(std::numeric_limits<T>::max())));
+                std::round(v), 0.0f, float(std::numeric_limits<T>::max())));
         });
     }
 };
