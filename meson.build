@@ -19,7 +19,6 @@ endif
 
 mmdevice_dep = dependency('mmdevice')
 
-asmjit_dep = dependency('asmjit', include_type: 'system')
 blend2d_dep = dependency('blend2d', include_type: 'system')
 
 catch2_with_main_dep = dependency('catch2-with-main', include_type: 'system')
