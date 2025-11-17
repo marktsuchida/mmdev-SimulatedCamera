@@ -1,2 +1,4 @@
 option('use_boost', type: 'feature', value: 'auto',
        description: 'Use Boost (headers only) for random number generators')
+option('use_simd', type: 'feature', value: 'auto',
+       description: 'Enable SIMD optimization with Highway')

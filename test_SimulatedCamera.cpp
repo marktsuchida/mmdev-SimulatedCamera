@@ -279,3 +279,32 @@ TEST_CASE("FastPoisson-tiny-lambda") {
     double sample = FastPoisson(0.01, rng, uniformDist);
     CHECK(sample >= 0.0);
 }
+
+#ifdef USE_HIGHWAY_SIMD
+TEST_CASE("FastGaussian2D-SIMD-correctness") {
+    using Catch::Matchers::WithinAbs;
+
+    const std::size_t width = GENERATE(0, 8, 32, 64, 127, 128, 129);
+    const std::size_t height = GENERATE(0, 8, 32, 64, 127, 128, 129);
+    const float sigma = GENERATE(1.0f, 5.0f);
+
+    CAPTURE(width, height, sigma);
+
+    // Initialize with pattern
+    std::vector<float> data_reference(width * height);
+    for (std::size_t i = 0; i < data_reference.size(); ++i) {
+        float val = static_cast<float>((i * 7919) % 1000) / 10.0f;
+        data_reference[i] = val;
+    }
+    std::vector<float> data_test = data_reference;
+
+    gaussian_internal::FastGaussian2DSIMD(data_test.data(), width, height,
+                                          sigma);
+    gaussian_internal::FastGaussian2DScalar(data_reference.data(), width,
+                                            height, sigma);
+    for (std::size_t i = 0; i < data_test.size(); ++i) {
+        CAPTURE(i);
+        CHECK_THAT(data_test[i], WithinAbs(data_reference[i], 1e-3f));
+    }
+}
+#endif

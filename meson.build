@@ -27,6 +27,12 @@ boost_dep = dependency(
     required: get_option('use_boost'),
 )
 
+highway_dep = dependency(
+    'libhwy',
+    include_type: 'system',
+    required: get_option('use_simd'),
+)
+
 catch2_with_main_dep = dependency('catch2-with-main', include_type: 'system')
 
 benchmark_dep = dependency('benchmark', include_type: 'system')
@@ -46,6 +52,10 @@ if boost_dep.found()
     cpp_args += '-DUSE_BOOST_RANDOM'
 endif
 
+if highway_dep.found()
+    cpp_args += '-DUSE_HIGHWAY_SIMD'
+endif
+
 shared_module(
     'SimulatedCamera',
     sources,
@@ -53,6 +63,7 @@ shared_module(
         mmdevice_dep,
         blend2d_dep,
         boost_dep,
+        highway_dep,
     ],
     cpp_args: cpp_args,
     gnu_symbol_visibility: 'inlineshidden',
@@ -62,7 +73,8 @@ shared_module(
 
 test_exe = executable(
     'test_SimulatedCamera',
-    sources + [
+    sources
+    + [
         'test_SimulatedCamera.cpp',
     ],
     dependencies: [
@@ -70,6 +82,7 @@ test_exe = executable(
         blend2d_dep,
         boost_dep,
         catch2_with_main_dep,
+        highway_dep,
     ],
     cpp_args: cpp_args,
 )
@@ -85,6 +98,7 @@ bench_exe = executable(
         blend2d_dep,
         boost_dep,
         benchmark_dep,
+        highway_dep,
     ],
     cpp_args: cpp_args,
 )
