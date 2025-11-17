@@ -46,6 +46,11 @@ template <typename F> inline float q(F sigma) {
     // 2.5. The jump in q value is about 0.1. If we really care, we should
     // redo the fitting and approximations.
 
+    // For a possible alternative (not used here), see Eq 11 in:
+    // Yount IT, van Vliet LJ, van Ginkel M, 2002, IEEE Trans Sig Proc
+    // 50:2798-2805. Recursive Gabor Filtering.
+    // https://doi.org/10.1109/TSP.2002.804095
+
     if (sigma < F(2.5)) {
         return F(3.97156) -
                F(4.14554) * std::sqrt(F(1.0) - F(0.26891) * sigma);
