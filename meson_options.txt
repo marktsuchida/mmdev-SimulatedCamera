@@ -1,0 +1,2 @@
+option('use_boost', type: 'feature', value: 'auto',
+       description: 'Use Boost (headers only) for random number generators')

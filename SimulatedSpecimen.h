@@ -11,8 +11,15 @@
 #include <functional>
 #include <iterator>
 #include <numeric>
-#include <random>
 #include <vector>
+
+#ifdef USE_BOOST_RANDOM
+#include <boost/random.hpp>
+#define RAND_NS boost::random
+#else
+#include <random>
+#define RAND_NS std
+#endif
 
 constexpr double PI = 3.1415926535897;
 
@@ -152,9 +159,10 @@ inline void FastGaussian2D(F *data, std::size_t width, std::size_t height,
 // - For large lambda: Gaussian approximation N(lambda, sqrt(lambda))
 template <typename F, typename RNG>
 F FastPoisson(F lambda, RNG &rng,
-              std::uniform_real_distribution<F> &uniformDist) {
+              RAND_NS::uniform_real_distribution<F> &uniformDist) {
     if (lambda > F(10.0)) {
-        std::normal_distribution<F> gaussianDist(lambda, std::sqrt(lambda));
+        RAND_NS::normal_distribution<F> gaussianDist(lambda,
+                                                     std::sqrt(lambda));
         return std::max(F(0), gaussianDist(rng));
     } else {
         F const L = std::exp(-lambda);
@@ -173,16 +181,16 @@ template <typename T> class SimulatedSpecimen {
         double x0, y0, x1, y1;
     };
 
-    std::mt19937 rng_;
+    RAND_NS::mt19937 rng_;
     std::vector<Filament> filaments_;
 
   public:
     explicit SimulatedSpecimen() {
         using std::cos;
         using std::sin;
-        std::normal_distribution<> xy0Distrib(0.0, 1000.0);
-        std::uniform_real_distribution<> thetaDistrib(0.0, 2.0 * PI);
-        std::exponential_distribution<> lenDistrib(1e-3);
+        RAND_NS::normal_distribution<> xy0Distrib(0.0, 1000.0);
+        RAND_NS::uniform_real_distribution<> thetaDistrib(0.0, 2.0 * PI);
+        RAND_NS::exponential_distribution<> lenDistrib(1e-3);
         for (int i = 0; i < 1000; ++i) {
             const double x0 = xy0Distrib(rng_);
             const double y0 = xy0Distrib(rng_);
@@ -254,7 +262,7 @@ template <typename T> class SimulatedSpecimen {
 
         // Shot noise
         auto uniformDistForPoisson =
-            std::uniform_real_distribution<float>(0.0, 1.0);
+            RAND_NS::uniform_real_distribution<float>(0.0, 1.0);
         std::for_each(fImage.begin(), fImage.end(), [&](float &p) {
             if (p > 0.0f) {
                 p = FastPoisson(p, rng_, uniformDistForPoisson);
@@ -262,7 +270,7 @@ template <typename T> class SimulatedSpecimen {
         });
 
         // Gaussian (~read) noise (TODO Adjustable? Scale?)
-        auto noiseDistrib = std::normal_distribution<float>(0.0, 50.0);
+        auto noiseDistrib = RAND_NS::normal_distribution<float>(0.0, 50.0);
         std::for_each(fImage.begin(), fImage.end(),
                       [&](float &p) { p += noiseDistrib(rng_); });
 

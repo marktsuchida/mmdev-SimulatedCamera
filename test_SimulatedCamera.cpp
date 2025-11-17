@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <numeric>
-#include <random>
 
 TEST_CASE("FastGaussian2D-q") {
     using Catch::Matchers::WithinAbs;
@@ -245,8 +244,8 @@ TEST_CASE("FastGaussian2D") {
 
 TEST_CASE("FastPoisson-mean-variance") {
     using Catch::Matchers::WithinAbs;
-    std::mt19937 rng(12345);
-    std::uniform_real_distribution<double> uniformDist(0.0, 1.0);
+    RAND_NS::mt19937 rng(12345);
+    RAND_NS::uniform_real_distribution<double> uniformDist(0.0, 1.0);
 
     // Test small and large lambda code paths.
     double const lambda = GENERATE(5.0, 100.0);
@@ -273,8 +272,8 @@ TEST_CASE("FastPoisson-mean-variance") {
 }
 
 TEST_CASE("FastPoisson-tiny-lambda") {
-    std::mt19937 rng(11111);
-    std::uniform_real_distribution<double> uniformDist(0.0, 1.0);
+    RAND_NS::mt19937 rng(11111);
+    RAND_NS::uniform_real_distribution<double> uniformDist(0.0, 1.0);
 
     double sample = FastPoisson(0.01, rng, uniformDist);
     CHECK(sample >= 0.0);

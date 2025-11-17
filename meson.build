@@ -21,6 +21,12 @@ mmdevice_dep = dependency('mmdevice')
 
 blend2d_dep = dependency('blend2d', include_type: 'system')
 
+boost_dep = dependency(
+    'boost',
+    include_type: 'system',
+    required: get_option('use_boost'),
+)
+
 catch2_with_main_dep = dependency('catch2-with-main', include_type: 'system')
 
 benchmark_dep = dependency('benchmark', include_type: 'system')
@@ -36,12 +42,17 @@ if cxx.get_id() == 'clang'
     cpp_args += '-Wno-nested-anon-types'
 endif
 
+if boost_dep.found()
+    cpp_args += '-DUSE_BOOST_RANDOM'
+endif
+
 shared_module(
     'SimulatedCamera',
     sources,
     dependencies: [
         mmdevice_dep,
         blend2d_dep,
+        boost_dep,
     ],
     cpp_args: cpp_args,
     gnu_symbol_visibility: 'inlineshidden',
@@ -57,6 +68,7 @@ test_exe = executable(
     dependencies: [
         mmdevice_dep,
         blend2d_dep,
+        boost_dep,
         catch2_with_main_dep,
     ],
     cpp_args: cpp_args,
@@ -71,6 +83,7 @@ bench_exe = executable(
     ],
     dependencies: [
         blend2d_dep,
+        boost_dep,
         benchmark_dep,
     ],
     cpp_args: cpp_args,
