@@ -150,6 +150,11 @@ class SimCam : public CCameraBase<SimCam> {
 
     int ClearROI() final { return SetROI(0, 0, sensorWidth_, sensorHeight_); }
 
+    int StartSequenceAcquisition(double interval) final {
+        return StartSequenceAcquisition(std::numeric_limits<long>::max(),
+                                        interval, false);
+    }
+
     int StartSequenceAcquisition(long numImages, double interval_ms,
                                  bool stopOnOverflow) final {
         (void)interval_ms;
