@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <vector>
 
-void bm_simulated_specimen_draw(benchmark::State& state) {
+void bm_simulated_specimen_draw(benchmark::State &state) {
     SimulatedSpecimen<std::uint16_t> specimen;
     const double z_um = state.range(0);
     const std::size_t width = 512, height = 512;
@@ -17,6 +17,9 @@ void bm_simulated_specimen_draw(benchmark::State& state) {
     }
 }
 
-BENCHMARK(bm_simulated_specimen_draw)->Arg(0)->Arg(50);
+BENCHMARK(bm_simulated_specimen_draw)
+    ->Arg(0)
+    ->Arg(50)
+    ->Unit(benchmark::kMillisecond);
 
 BENCHMARK_MAIN();
