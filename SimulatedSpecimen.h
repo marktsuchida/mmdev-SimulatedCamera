@@ -257,26 +257,25 @@ template <typename T> class SimulatedSpecimen {
         FastGaussian2D(fImage.data(), width, height, sigmaPixels);
 
         // Scale by intensity
-        std::for_each(fImage.begin(), fImage.end(),
-                      [i = float(intensity)](float &p) { p *= i; });
+        std::transform(fImage.begin(), fImage.end(), fImage.begin(),
+                       [i = float(intensity)](float p) { return p * i; });
 
         // Shot noise
         auto uniformDistForPoisson =
             RAND_NS::uniform_real_distribution<float>(0.0, 1.0);
-        std::for_each(fImage.begin(), fImage.end(), [&](float &p) {
-            if (p > 0.0f) {
-                p = FastPoisson(p, rng_, uniformDistForPoisson);
-            }
-        });
+        std::transform(
+            fImage.begin(), fImage.end(), fImage.begin(), [&](float p) {
+                return p > 0.0f ? FastPoisson(p, rng_, uniformDistForPoisson)
+                                : p;
+            });
 
         // Gaussian (~read) noise (TODO Adjustable? Scale?)
+        // and dark offset (TODO adjustable?)
         auto noiseDistrib = RAND_NS::normal_distribution<float>(0.0, 50.0);
-        std::for_each(fImage.begin(), fImage.end(),
-                      [&](float &p) { p += noiseDistrib(rng_); });
-
-        // Dark offset (TODO adjustable?)
-        std::for_each(fImage.begin(), fImage.end(),
-                      [](float &p) { p += 100.0f; });
+        const float darkOffset = 100.0f;
+        std::transform(
+            fImage.begin(), fImage.end(), fImage.begin(),
+            [&](float p) { return p + noiseDistrib(rng_) + darkOffset; });
 
         // Clamp to pixel type range
         std::transform(fImage.begin(), fImage.end(), buffer, [](float v) {
