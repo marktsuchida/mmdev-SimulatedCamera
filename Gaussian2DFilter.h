@@ -120,50 +120,33 @@ inline void ForwardFilterVerticalSIMD(float *data, std::size_t width,
     const std::size_t N = hn::Lanes(d);
 
     const auto vec_B = hn::Set(d, B);
-    const auto vec_bp0 = hn::Set(d, bp[0]);
-    const auto vec_bp1 = hn::Set(d, bp[1]);
-    const auto vec_bp2 = hn::Set(d, bp[2]);
-    const auto vec_bp_sum = hn::Set(d, bp[0] + bp[1] + bp[2]);
-    const auto vec_bp12_sum = hn::Set(d, bp[1] + bp[2]);
+    const auto vec_b1p = hn::Set(d, bp[0]);
+    const auto vec_b2p = hn::Set(d, bp[1]);
+    const auto vec_b3p = hn::Set(d, bp[2]);
 
     // Processes N adjacent columns simultaneously
     for (std::size_t i = 0; i + N <= width; i += N) {
-        if (height > 0) {
-            // First row unchanged.
-        }
-
-        if (height > 1) {
-            float *p = data + 1 * width + i;
-            auto curr = hn::LoadU(d, p);
-            auto prev0 = hn::LoadU(d, p - width);
-            auto result = hn::MulAdd(vec_B, curr, hn::Mul(vec_bp_sum, prev0));
+        float *p0 = data + i;
+        if (height < 1)
+            return;
+        auto row_curr = hn::LoadU(d, p0);
+        // Replicate the 3 rows before the border.
+        auto row_prev1 = row_curr;
+        auto row_prev2 = row_curr;
+        auto row_prev3 = row_curr;
+        for (std::size_t j = 1; j < height; ++j) {
+            float *const p = p0 + j * width;
+            row_prev3 = row_prev2;
+            row_prev2 = row_prev1;
+            row_prev1 = row_curr;
+            row_curr = hn::LoadU(d, p);
+            const auto result = hn::MulAdd(
+                vec_B, row_curr,
+                hn::MulAdd(vec_b1p, row_prev1,
+                           hn::MulAdd(vec_b2p, row_prev2,
+                                      hn::Mul(vec_b3p, row_prev3))));
             hn::StoreU(result, d, p);
-        }
-
-        if (height > 2) {
-            float *p = data + 2 * width + i;
-            auto curr = hn::LoadU(d, p);
-            auto prev1 = hn::LoadU(d, p - width);
-            auto prev0 = hn::LoadU(d, p - 2 * width);
-            auto result = hn::MulAdd(
-                vec_B, curr,
-                hn::MulAdd(vec_bp0, prev1, hn::Mul(vec_bp12_sum, prev0)));
-            hn::StoreU(result, d, p);
-        }
-
-        for (std::size_t j = 3; j < height; ++j) {
-            float *p = data + j * width + i;
-            auto curr = hn::LoadU(d, p);
-            auto prev1 = hn::LoadU(d, p - width);
-            auto prev2 = hn::LoadU(d, p - 2 * width);
-            auto prev3 = hn::LoadU(d, p - 3 * width);
-
-            auto result =
-                hn::MulAdd(vec_B, curr,
-                           hn::MulAdd(vec_bp0, prev1,
-                                      hn::MulAdd(vec_bp1, prev2,
-                                                 hn::Mul(vec_bp2, prev3))));
-            hn::StoreU(result, d, p);
+            row_curr = result;
         }
     }
 
@@ -181,55 +164,35 @@ inline void BackwardFilterVerticalSIMD(float *data, std::size_t width,
     const std::size_t N = hn::Lanes(d);
 
     const auto vec_B = hn::Set(d, B);
-    const auto vec_bp0 = hn::Set(d, bp[0]);
-    const auto vec_bp1 = hn::Set(d, bp[1]);
-    const auto vec_bp2 = hn::Set(d, bp[2]);
-    const auto vec_bp_sum = hn::Set(d, bp[0] + bp[1] + bp[2]);
-    const auto vec_bp12_sum = hn::Set(d, bp[1] + bp[2]);
+    const auto vec_b1p = hn::Set(d, bp[0]);
+    const auto vec_b2p = hn::Set(d, bp[1]);
+    const auto vec_b3p = hn::Set(d, bp[2]);
 
     // Process N adjacent columns simultaneously
     for (std::size_t i = 0; i + N <= width; i += N) {
-        if (height > 0) {
-            // Last row unchanged.
-        }
-
-        if (height > 1) {
-            float *p = data + (height - 2) * width + i;
-            auto curr = hn::LoadU(d, p);
-            auto next0 = hn::LoadU(d, p + width);
-            auto result = hn::MulAdd(vec_B, curr, hn::Mul(vec_bp_sum, next0));
+        float *p0 = data + i;
+        if (height < 1)
+            return;
+        auto row_curr = hn::LoadU(d, p0 + (height - 1) * width);
+        // Replicate the 3 rows after the border.
+        auto row_next1 = row_curr;
+        auto row_next2 = row_curr;
+        auto row_next3 = row_curr;
+        for (std::size_t j = height - 2;; --j) {
+            float *const p = p0 + j * width;
+            row_next3 = row_next2;
+            row_next2 = row_next1;
+            row_next1 = row_curr;
+            row_curr = hn::LoadU(d, p);
+            const auto result = hn::MulAdd(
+                vec_B, row_curr,
+                hn::MulAdd(vec_b1p, row_next1,
+                           hn::MulAdd(vec_b2p, row_next2,
+                                      hn::Mul(vec_b3p, row_next3))));
             hn::StoreU(result, d, p);
-        }
-
-        if (height > 2) {
-            float *p = data + (height - 3) * width + i;
-            auto curr = hn::LoadU(d, p);
-            auto next1 = hn::LoadU(d, p + width);
-            auto next0 = hn::LoadU(d, p + 2 * width);
-            auto result = hn::MulAdd(
-                vec_B, curr,
-                hn::MulAdd(vec_bp0, next1, hn::Mul(vec_bp12_sum, next0)));
-            hn::StoreU(result, d, p);
-        }
-
-        if (height > 3) {
-            for (std::size_t j = height - 4;; --j) {
-                float *p = data + j * width + i;
-                auto curr = hn::LoadU(d, p);
-                auto next1 = hn::LoadU(d, p + width);
-                auto next2 = hn::LoadU(d, p + 2 * width);
-                auto next3 = hn::LoadU(d, p + 3 * width);
-
-                auto result = hn::MulAdd(
-                    vec_B, curr,
-                    hn::MulAdd(
-                        vec_bp0, next1,
-                        hn::MulAdd(vec_bp1, next2, hn::Mul(vec_bp2, next3))));
-                hn::StoreU(result, d, p);
-
-                if (j == 0) {
-                    break; // Exit before underflow
-                }
+            row_curr = result;
+            if (j == 0) {
+                break; // Exit before underflow
             }
         }
     }
@@ -249,67 +212,34 @@ inline void ForwardFilterHorizontalSIMD(float *data, std::size_t width,
     const std::size_t N = hn::Lanes(d);
 
     const auto vec_B = hn::Set(d, B);
-    const auto vec_bp0 = hn::Set(d, bp[0]);
-    const auto vec_bp1 = hn::Set(d, bp[1]);
-    const auto vec_bp2 = hn::Set(d, bp[2]);
-    const auto vec_bp_sum = hn::Set(d, bp[0] + bp[1] + bp[2]);
-    const auto vec_bp12_sum = hn::Set(d, bp[1] + bp[2]);
+    const auto vec_b1p = hn::Set(d, bp[0]);
+    const auto vec_b2p = hn::Set(d, bp[1]);
+    const auto vec_b3p = hn::Set(d, bp[2]);
 
     // Process N consecutive rows simultaneously
     for (std::size_t j = 0; j + N <= height; j += N) {
-        alignas(16) std::int32_t base_indices[4];
-        for (std::size_t r = 0; r < N; ++r) {
-            base_indices[r] = static_cast<std::int32_t>((j + r) * width);
-        }
-        auto base_idx = hn::Load(di, base_indices);
-
-        if (width > 0) {
-            // First column unchanged.
-        }
-
-        if (width > 1) {
-            auto idx = hn::Add(base_idx, hn::Set(di, 1));
-            auto curr = hn::GatherIndex(d, data, idx);
-            auto idx_prev = base_idx;
-            auto prev0 = hn::GatherIndex(d, data, idx_prev);
-            auto result = hn::MulAdd(vec_B, curr, hn::Mul(vec_bp_sum, prev0));
+        const auto idx0 = hn::Iota(di, static_cast<std::int32_t>(j)) *
+                          hn::Set(di, static_cast<std::int32_t>(width));
+        if (width < 1)
+            return;
+        auto col_curr = hn::GatherIndex(d, data, idx0);
+        // Replicate the 3 columns before the border.
+        auto col_prev1 = col_curr;
+        auto col_prev2 = col_curr;
+        auto col_prev3 = col_curr;
+        for (std::size_t i = 1; i < width; ++i) {
+            const auto idx = idx0 + hn::Set(di, static_cast<std::int32_t>(i));
+            col_prev3 = col_prev2;
+            col_prev2 = col_prev1;
+            col_prev1 = col_curr;
+            col_curr = hn::GatherIndex(d, data, idx);
+            const auto result = hn::MulAdd(
+                vec_B, col_curr,
+                hn::MulAdd(vec_b1p, col_prev1,
+                           hn::MulAdd(vec_b2p, col_prev2,
+                                      hn::Mul(vec_b3p, col_prev3))));
             hn::ScatterIndex(result, d, data, idx);
-        }
-
-        if (width > 2) {
-            auto idx = hn::Add(base_idx, hn::Set(di, 2));
-            auto curr = hn::GatherIndex(d, data, idx);
-            auto prev1 =
-                hn::GatherIndex(d, data, hn::Add(base_idx, hn::Set(di, 1)));
-            auto prev0 = hn::GatherIndex(d, data, base_idx);
-            auto result = hn::MulAdd(
-                vec_B, curr,
-                hn::MulAdd(vec_bp0, prev1, hn::Mul(vec_bp12_sum, prev0)));
-            hn::ScatterIndex(result, d, data, idx);
-        }
-
-        for (std::size_t i = 3; i < width; ++i) {
-            auto offset = hn::Set(di, static_cast<std::int32_t>(i));
-            auto idx = hn::Add(base_idx, offset);
-            auto curr = hn::GatherIndex(d, data, idx);
-            auto prev1 = hn::GatherIndex(
-                d, data,
-                hn::Add(base_idx,
-                        hn::Set(di, static_cast<std::int32_t>(i - 1))));
-            auto prev2 = hn::GatherIndex(
-                d, data,
-                hn::Add(base_idx,
-                        hn::Set(di, static_cast<std::int32_t>(i - 2))));
-            auto prev3 = hn::GatherIndex(
-                d, data,
-                hn::Add(base_idx,
-                        hn::Set(di, static_cast<std::int32_t>(i - 3))));
-            auto result =
-                hn::MulAdd(vec_B, curr,
-                           hn::MulAdd(vec_bp0, prev1,
-                                      hn::MulAdd(vec_bp1, prev2,
-                                                 hn::Mul(vec_bp2, prev3))));
-            hn::ScatterIndex(result, d, data, idx);
+            col_curr = result;
         }
     }
 
@@ -328,81 +258,37 @@ inline void BackwardFilterHorizontalSIMD(float *data, std::size_t width,
     const std::size_t N = hn::Lanes(d);
 
     const auto vec_B = hn::Set(d, B);
-    const auto vec_bp0 = hn::Set(d, bp[0]);
-    const auto vec_bp1 = hn::Set(d, bp[1]);
-    const auto vec_bp2 = hn::Set(d, bp[2]);
-    const auto vec_bp_sum = hn::Set(d, bp[0] + bp[1] + bp[2]);
-    const auto vec_bp12_sum = hn::Set(d, bp[1] + bp[2]);
+    const auto vec_b1p = hn::Set(d, bp[0]);
+    const auto vec_b2p = hn::Set(d, bp[1]);
+    const auto vec_b3p = hn::Set(d, bp[2]);
 
     // Process N consecutive rows simultaneously
     for (std::size_t j = 0; j + N <= height; j += N) {
-        alignas(16) std::int32_t base_indices[4];
-        for (std::size_t r = 0; r < N; ++r) {
-            base_indices[r] = static_cast<std::int32_t>((j + r) * width);
-        }
-        auto base_idx = hn::Load(di, base_indices);
-
-        if (width > 0) {
-            // Last column unchanged.
-        }
-
-        if (width > 1) {
-            auto idx = hn::Add(
-                base_idx, hn::Set(di, static_cast<std::int32_t>(width - 2)));
-            auto curr = hn::GatherIndex(d, data, idx);
-            auto next0 = hn::GatherIndex(
-                d, data,
-                hn::Add(base_idx,
-                        hn::Set(di, static_cast<std::int32_t>(width - 1))));
-            auto result = hn::MulAdd(vec_B, curr, hn::Mul(vec_bp_sum, next0));
+        const auto idx0 = hn::Iota(di, static_cast<std::int32_t>(j)) *
+                          hn::Set(di, static_cast<std::int32_t>(width));
+        if (width < 1)
+            return;
+        auto col_curr = hn::GatherIndex(
+            d, data, idx0 + hn::Set(di, static_cast<std::int32_t>(width - 1)));
+        // Replicate the 3 columns after the border.
+        auto col_next1 = col_curr;
+        auto col_next2 = col_curr;
+        auto col_next3 = col_curr;
+        for (std::size_t i = width - 2;; --i) {
+            const auto idx = idx0 + hn::Set(di, static_cast<std::int32_t>(i));
+            col_next3 = col_next2;
+            col_next2 = col_next1;
+            col_next1 = col_curr;
+            col_curr = hn::GatherIndex(d, data, idx);
+            const auto result = hn::MulAdd(
+                vec_B, col_curr,
+                hn::MulAdd(vec_b1p, col_next1,
+                           hn::MulAdd(vec_b2p, col_next2,
+                                      hn::Mul(vec_b3p, col_next3))));
             hn::ScatterIndex(result, d, data, idx);
-        }
-
-        if (width > 2) {
-            auto idx = hn::Add(
-                base_idx, hn::Set(di, static_cast<std::int32_t>(width - 3)));
-            auto curr = hn::GatherIndex(d, data, idx);
-            auto next1 = hn::GatherIndex(
-                d, data,
-                hn::Add(base_idx,
-                        hn::Set(di, static_cast<std::int32_t>(width - 2))));
-            auto next0 = hn::GatherIndex(
-                d, data,
-                hn::Add(base_idx,
-                        hn::Set(di, static_cast<std::int32_t>(width - 1))));
-            auto result = hn::MulAdd(
-                vec_B, curr,
-                hn::MulAdd(vec_bp0, next1, hn::Mul(vec_bp12_sum, next0)));
-            hn::ScatterIndex(result, d, data, idx);
-        }
-
-        if (width > 3) {
-            for (std::size_t i = width - 4;; --i) {
-                auto idx = hn::Add(base_idx,
-                                   hn::Set(di, static_cast<std::int32_t>(i)));
-                auto curr = hn::GatherIndex(d, data, idx);
-                auto next1 = hn::GatherIndex(
-                    d, data,
-                    hn::Add(base_idx,
-                            hn::Set(di, static_cast<std::int32_t>(i + 1))));
-                auto next2 = hn::GatherIndex(
-                    d, data,
-                    hn::Add(base_idx,
-                            hn::Set(di, static_cast<std::int32_t>(i + 2))));
-                auto next3 = hn::GatherIndex(
-                    d, data,
-                    hn::Add(base_idx,
-                            hn::Set(di, static_cast<std::int32_t>(i + 3))));
-                auto result = hn::MulAdd(
-                    vec_B, curr,
-                    hn::MulAdd(
-                        vec_bp0, next1,
-                        hn::MulAdd(vec_bp1, next2, hn::Mul(vec_bp2, next3))));
-                hn::ScatterIndex(result, d, data, idx);
-
-                if (i == 0)
-                    break; // Exit before underflow
-            }
+            col_curr = result;
+            if (i == 0)
+                break; // Exit before underflow
         }
     }
 
