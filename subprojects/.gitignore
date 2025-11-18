@@ -14,5 +14,6 @@
 !/mmdevice.wrap
 !/asmjit.wrap
 !/blend2d.wrap
+!/libhwy.wrap
 !/catch2.wrap
 !/google-benchmark.wrap
