@@ -39,6 +39,7 @@ benchmark_dep = dependency('benchmark', include_type: 'system')
 
 sources = [
     'DeviceAdapter.cpp',
+    'Gaussian2DFilter.cpp',
     'SimHub.cpp',
 ]
 
@@ -54,6 +55,11 @@ endif
 
 if highway_dep.found()
     cpp_args += '-DUSE_HIGHWAY_SIMD'
+
+    simd_dyn_opt = get_option('simd_dynamic_dispatch')
+    if simd_dyn_opt.allowed()
+        cpp_args += '-DUSE_HIGHWAY_DYNAMIC_DISPATCH'
+    endif
 endif
 
 shared_module(
@@ -92,6 +98,7 @@ test('SimulatedCamera tests', test_exe)
 bench_exe = executable(
     'bench_SimulatedCamera',
     [
+        'Gaussian2DFilter.cpp',
         'bench_SimulatedSpecimen.cpp',
     ],
     dependencies: [

@@ -2,3 +2,5 @@ option('use_boost', type: 'feature', value: 'auto',
        description: 'Use Boost (headers only) for random number generators')
 option('use_simd', type: 'feature', value: 'auto',
        description: 'Enable SIMD optimization with Highway')
+option('simd_dynamic_dispatch', type: 'feature', value: 'auto',
+       description: 'Enable multi-architecture dynamic dispatch for SIMD')
