@@ -168,20 +168,24 @@ class SimCam : public CCameraBase<SimCam> {
             return DEVICE_INVALID_INPUT_PARAM;
         }
         const std::size_t nImages = static_cast<std::size_t>(numImages);
+        const auto interval =
+            std::chrono::microseconds(std::llround(exposure_ms_ * 1000.0));
 
         seqStopRequested_ = false;
-        seqThread_ = std::thread([this, nImages] {
-            const auto interval =
-                std::chrono::microseconds(std::llround(exposure_ms_ * 1000.0));
+        seqThread_ = std::thread([this, nImages, interval] {
+            auto prevTimeTaken = std::chrono::steady_clock::duration{};
             for (std::size_t i = 0; i < nImages; ++i) {
-                {
+                if (i > 0) {
+                    const auto remainingTime = interval - prevTimeTaken;
                     std::unique_lock<std::mutex> lock(seqMutex_);
-                    if (seqStopCV_.wait_for(lock, interval, [&] {
+                    if (seqStopCV_.wait_for(lock, remainingTime, [&] {
                             return seqStopRequested_;
                         })) {
                         break;
                     }
                 }
+
+                const auto startTime = std::chrono::steady_clock::now();
 
                 // This is _not_ how to implement real cameras, but for this
                 // simulation we can implement in terms of snaps.
@@ -189,6 +193,9 @@ class SimCam : public CCameraBase<SimCam> {
                 GetCoreCallback()->InsertImage(
                     this, GetImageBuffer(), GetImageWidth(), GetImageHeight(),
                     GetImageBytesPerPixel());
+
+                const auto stopTime = std::chrono::steady_clock::now();
+                prevTimeTaken = stopTime - startTime;
             }
         });
         return DEVICE_OK;
