@@ -67,22 +67,21 @@ inline void ForwardFilter(F *data, std::size_t size, F B, std::array<F, 3> bp,
     const auto s = Stride > 0 ? Stride : stride;
     F *const pend = data + size * s;
     F *p = data;
+    if (size < 1)
+        return;
+    F cur = *p;
     // Replicate the 3 pixels outside the border.
-    if (size > 0) {
-        // First pixel unchanged.
-    }
-    p += s;
-    if (size > 1) {
-        *p = B * *p + (bp[0] + bp[1] + bp[2]) * *(p - s);
-    }
-    p += s;
-    if (size > 2) {
-        *p = B * *p + bp[0] * *(p - s) + (bp[1] + bp[2]) * *(p - 2 * s);
-    }
+    F prev1 = cur;
+    F prev2 = cur;
+    F prev3 = cur;
     p += s;
     for (; p < pend; p += s) {
-        *p = B * *p + bp[0] * *(p - s) + bp[1] * *(p - 2 * s) +
-             bp[2] * *(p - 3 * s);
+        prev3 = prev2;
+        prev2 = prev1;
+        prev1 = cur;
+        cur = *p;
+        cur = B * cur + bp[0] * prev1 + bp[1] * prev2 + bp[2] * prev3;
+        *p = cur;
     }
 }
 
@@ -93,22 +92,21 @@ inline void BackwardFilter(F *data, std::size_t size, F B, std::array<F, 3> bp,
     const auto s = Stride > 0 ? Stride : stride;
     F *const prend = data - 1;
     F *p = data + (size - 1) * s;
+    if (size < 1)
+        return;
+    F cur = *p;
     // Replicate the 3 pixels outside of the border.
-    if (size > 0) {
-        // Rightmost pixel unchanged.
-    }
-    p -= s;
-    if (size > 1) {
-        *p = B * *p + (bp[0] + bp[1] + bp[2]) * *(p + s);
-    }
-    p -= s;
-    if (size > 2) {
-        *p = B * *p + bp[0] * *(p + s) + (bp[1] + bp[2]) * *(p + 2 * s);
-    }
+    F next1 = cur;
+    F next2 = cur;
+    F next3 = cur;
     p -= s;
     for (; p > prend; p -= s) {
-        *p = B * *p + bp[0] * *(p + s) + bp[1] * *(p + 2 * s) +
-             bp[2] * *(p + 3 * s);
+        next3 = next2;
+        next2 = next1;
+        next1 = cur;
+        cur = *p;
+        cur = B * cur + bp[0] * next1 + bp[1] * next2 + bp[2] * next3;
+        *p = cur;
     }
 }
 
