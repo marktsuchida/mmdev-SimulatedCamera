@@ -17,7 +17,6 @@ void bm_simulated_specimen_draw(benchmark::State &state) {
         benchmark::DoNotOptimize(data);
     }
 }
-
 BENCHMARK(bm_simulated_specimen_draw)
     ->Arg(0)
     ->Arg(50)
@@ -37,12 +36,13 @@ void bm_gaussian_2d_filter_scalar(benchmark::State &state) {
     bm_gaussian_2d_filter<gaussian_internal::FastGaussian2DScalar<float>>(
         state);
 }
+BENCHMARK(bm_gaussian_2d_filter_scalar)->Unit(benchmark::kMillisecond);
 
+#ifdef USE_HIGHWAY_SIMD
 void bm_gaussian_2d_filter_simd(benchmark::State &state) {
     bm_gaussian_2d_filter<gaussian_internal::FastGaussian2DSIMD>(state);
 }
-
-BENCHMARK(bm_gaussian_2d_filter_scalar)->Unit(benchmark::kMillisecond);
 BENCHMARK(bm_gaussian_2d_filter_simd)->Unit(benchmark::kMillisecond);
+#endif
 
 BENCHMARK_MAIN();
