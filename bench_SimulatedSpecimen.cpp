@@ -8,7 +8,7 @@
 
 void bm_simulated_specimen_draw(benchmark::State &state) {
     SimulatedSpecimen<std::uint16_t> specimen;
-    const double z_um = state.range(0);
+    const auto z_um = double(state.range(0));
     const std::size_t width = 512, height = 512;
     std::vector<std::uint16_t> buffer(width * height);
     auto *data = buffer.data();
