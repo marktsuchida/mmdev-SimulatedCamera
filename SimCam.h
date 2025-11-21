@@ -5,6 +5,7 @@
 
 #include "DeviceBase.h"
 
+#include <cassert>
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
@@ -49,7 +50,7 @@ class SimCam : public CCameraBase<SimCam> {
     }
 
     int Initialize() final {
-        CreateProperty(MM::g_Keyword_Exposure,
+        int ret = CreateProperty(MM::g_Keyword_Exposure,
                        std::to_string(exposure_ms_).c_str(), MM::Float, false,
                        new MM::ActionLambda([this](MM::PropertyBase *pProp,
                                                    MM::ActionType eAct) {
@@ -62,10 +63,15 @@ class SimCam : public CCameraBase<SimCam> {
                            }
                            return DEVICE_OK;
                        }));
-        SetPropertyLimits(MM::g_Keyword_Exposure, 0.001, 10'000.0);
+        assert(ret == DEVICE_OK);
+        ret = SetPropertyLimits(MM::g_Keyword_Exposure, 0.001, 10'000.0);
+        assert(ret == DEVICE_OK);
 
-        CreateProperty(MM::g_Keyword_Binning, "1", MM::Integer, false);
-        AddAllowedValue(MM::g_Keyword_Binning, "1");
+        ret = CreateProperty(MM::g_Keyword_Binning, "1", MM::Integer, false);
+        assert(ret == DEVICE_OK);
+        ret = AddAllowedValue(MM::g_Keyword_Binning, "1");
+        assert(ret == DEVICE_OK);
+        (void)ret;
 
         return DEVICE_OK;
     }

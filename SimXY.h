@@ -7,6 +7,7 @@
 #include "DeviceBase.h"
 
 #include <array>
+#include <cassert>
 #include <chrono>
 #include <cmath>
 #include <mutex>
@@ -54,9 +55,10 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
     }
 
     int Initialize() final {
-        this->CreateFloatProperty("UmPerStep", umPerStep_, true);
+        int ret = this->CreateFloatProperty("UmPerStep", umPerStep_, true);
+        assert(ret == DEVICE_OK);
 
-        this->CreateStringProperty(
+        ret = this->CreateStringProperty(
             "NotificationsEnabled", notificationsEnabled_ ? "Yes" : "No",
             false,
             new MM::ActionLambda(
@@ -70,11 +72,14 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
                     }
                     return DEVICE_OK;
                 }));
-        this->AddAllowedValue("NotificationsEnabled", "No");
-        this->AddAllowedValue("NotificationsEnabled", "Yes");
+        assert(ret == DEVICE_OK);
+        ret = this->AddAllowedValue("NotificationsEnabled", "No");
+        assert(ret == DEVICE_OK);
+        ret = this->AddAllowedValue("NotificationsEnabled", "Yes");
+        assert(ret == DEVICE_OK);
 
         if (ProcModel::isAsync) {
-            this->CreateFloatProperty(
+            ret = this->CreateFloatProperty(
                 "SlewTimePerStep_s", model_.ReciprocalSlewRateSeconds(), false,
                 new MM::ActionLambda(
                     [this](MM::PropertyBase *pProp, MM::ActionType eAct) {
@@ -87,9 +92,11 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
                         }
                         return DEVICE_OK;
                     }));
-            this->SetPropertyLimits("SlewTimePerStep_s", 0.0001, 10.0);
+            assert(ret == DEVICE_OK);
+            ret = this->SetPropertyLimits("SlewTimePerStep_s", 0.0001, 10.0);
+            assert(ret == DEVICE_OK);
 
-            this->CreateFloatProperty(
+            ret = this->CreateFloatProperty(
                 "UpdateInterval_s", model_.UpdateIntervalSeconds(), false,
                 new MM::ActionLambda(
                     [this](MM::PropertyBase *pProp, MM::ActionType eAct) {
@@ -102,12 +109,14 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
                         }
                         return DEVICE_OK;
                     }));
-            this->SetPropertyLimits("UpdateInterval_s", 0.0001, 10.0);
+            assert(ret == DEVICE_OK);
+            ret = this->SetPropertyLimits("UpdateInterval_s", 0.0001, 10.0);
+            assert(ret == DEVICE_OK);
 
             using std::chrono::duration_cast;
             using std::chrono::microseconds;
             using FPSeconds = std::chrono::duration<double>;
-            this->CreateFloatProperty(
+            ret = this->CreateFloatProperty(
                 "NotificationDelay_s",
                 duration_cast<FPSeconds>(delayer_.Delay()).count(), false,
                 new MM::ActionLambda([this](MM::PropertyBase *pProp,
@@ -123,8 +132,11 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
                     }
                     return DEVICE_OK;
                 }));
-            this->SetPropertyLimits("NotificationDelay_s", 0.0, 1.0);
+            assert(ret == DEVICE_OK);
+            ret = this->SetPropertyLimits("NotificationDelay_s", 0.0, 1.0);
+            assert(ret == DEVICE_OK);
         }
+        (void)ret;
 
         auto *hub = static_cast<SimHub *>(this->GetParentHub());
         hub->SetGetXYUmFunction([this] {
