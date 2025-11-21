@@ -138,6 +138,9 @@ class SimCam : public CCameraBase<SimCam> {
     }
 
     int SetROI(unsigned x, unsigned y, unsigned width, unsigned height) final {
+        if (width == 0 || height == 0) {
+            return DEVICE_INVALID_INPUT_PARAM;
+        }
         if (x + width > sensorWidth_ || y + height > sensorHeight_) {
             return DEVICE_INVALID_INPUT_PARAM;
         }
