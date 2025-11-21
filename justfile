@@ -5,9 +5,7 @@ help:
     @echo 'Most dependencies are automatically downloaded, except for Boost.'
     @echo '(Boost is an optional dependency used for faster random numbers.)'
     @echo 'Use `apt install libboost-all-dev`, `brew install boost`, or'
-    @echo '`scoop install main/boost`, etc. For a scoop install, you need'
-    @echo '`export BOOST_ROOT=$HOME/scoop/apps/boost/current` before'
-    @echo 'configuring the build.'
+    @echo '`scoop install main/boost`, etc. Set `BOOST_ROOT` if necessary.'
 
 # Configure for debug/debugoptimized/release
 configure BUILDTYPE *FLAGS:
