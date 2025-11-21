@@ -1,3 +1,5 @@
+option('benchmarks', type: 'feature', value: 'auto',
+       description: 'Enable performance benchmarks')
 option('use_boost', type: 'feature', value: 'auto',
        description: 'Use Boost (headers only) for random number generators')
 option('use_simd', type: 'feature', value: 'auto',

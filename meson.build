@@ -35,7 +35,12 @@ highway_dep = dependency(
 
 catch2_with_main_dep = dependency('catch2-with-main', include_type: 'system')
 
-benchmark_dep = dependency('benchmark', include_type: 'system')
+benchmark_dep = dependency(
+    'benchmark',
+    include_type: 'system',
+    required: get_option('benchmarks'),
+    disabler: true,
+)
 
 sources = [
     'DeviceAdapter.cpp',
