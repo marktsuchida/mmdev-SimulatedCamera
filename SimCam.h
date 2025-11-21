@@ -173,6 +173,12 @@ class SimCam : public CCameraBase<SimCam> {
 
         seqStopRequested_ = false;
         seqThread_ = std::thread([this, nImages, interval] {
+            int ret = DEVICE_OK;
+            ret = GetCoreCallback()->PrepareForAcq(this);
+            if (ret != DEVICE_OK) {
+                GetCoreCallback()->AcqFinished(this, ret);
+                return;
+            }
             auto prevTimeTaken = std::chrono::steady_clock::duration{};
             for (std::size_t i = 0; i < nImages; ++i) {
                 if (i > 0) {
@@ -190,13 +196,17 @@ class SimCam : public CCameraBase<SimCam> {
                 // This is _not_ how to implement real cameras, but for this
                 // simulation we can implement in terms of snaps.
                 SnapImage();
-                GetCoreCallback()->InsertImage(
+                ret = GetCoreCallback()->InsertImage(
                     this, GetImageBuffer(), GetImageWidth(), GetImageHeight(),
                     GetImageBytesPerPixel());
+                if (ret != DEVICE_OK) {
+                    break;
+                }
 
                 const auto stopTime = std::chrono::steady_clock::now();
                 prevTimeTaken = stopTime - startTime;
             }
+            GetCoreCallback()->AcqFinished(this, ret);
         });
         return DEVICE_OK;
     }
