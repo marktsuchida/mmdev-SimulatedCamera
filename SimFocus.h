@@ -58,11 +58,17 @@ class SimFocus : public CStageBase<SimFocus<ProcModel>> {
             new MM::ActionLambda(
                 [this](MM::PropertyBase *pProp, MM::ActionType eAct) {
                     if (eAct == MM::BeforeGet) {
-                        pProp->Set(notificationsEnabled_ ? "Yes" : "No");
+                        const bool enabled = [&] {
+                            std::lock_guard<std::mutex> lock(notificationMut_);
+                            return notificationsEnabled_;
+                        }();
+                        pProp->Set(enabled ? "Yes" : "No");
                     } else if (eAct == MM::AfterSet) {
                         std::string value;
                         pProp->Get(value);
-                        notificationsEnabled_ = (value == "Yes");
+                        const bool enable = (value == "Yes");
+                        std::lock_guard<std::mutex> lock(notificationMut_);
+                        notificationsEnabled_ = enable;
                     }
                     return DEVICE_OK;
                 }));
