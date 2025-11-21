@@ -151,7 +151,7 @@ class SimFocus : public CStageBase<SimFocus<ProcModel>> {
 
     int Shutdown() final {
         auto *hub = static_cast<SimHub *>(this->GetParentHub());
-        hub->SetGetXYUmFunction([] { return std::make_pair(0.0, 0.0); });
+        hub->SetGetFocusUmFunction([] { return 0.0; });
         model_.Halt();
         delayer_.CancelAll();
         return DEVICE_OK;
