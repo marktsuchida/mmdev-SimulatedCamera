@@ -146,8 +146,15 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
 
         auto *hub = static_cast<SimHub *>(this->GetParentHub());
         hub->SetGetSpecimenXYUmFunction([this] {
-            double x_um, y_um;
-            (void)this->GetPositionUm(x_um, y_um);
+            // We do _not_ call GetPositionUm() here, because those um coords
+            // may be flipped wrt the specimen due to TransposeMirrorX/Y.
+            // Instead, we use a pure scaling of the steps here.
+            long x_steps, y_steps;
+            (void)this->GetPositionSteps(x_steps, y_steps);
+            const double xUmPerSteps = GetStepSizeXUm();
+            const double yUmPerSteps = GetStepSizeYUm();
+            const double x_um = x_steps * xUmPerSteps;
+            const double y_um = y_steps * yUmPerSteps;
             return std::make_pair(x_um, y_um);
         });
 
