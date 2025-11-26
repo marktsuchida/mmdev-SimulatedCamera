@@ -9,8 +9,8 @@
 class SimHub : public HubBase<SimHub> {
     std::string name_;
 
-    std::function<double()> getFocusUmFunc_ = [] { return 0.0; };
-    std::function<std::pair<double, double>()> getXYUmFunc_ = [] {
+    std::function<double()> getSpecimenFocusUmFunc_ = [] { return 0.0; };
+    std::function<std::pair<double, double>()> getSpecimenXYUmFunc_ = [] {
         return std::make_pair(0.0, 0.0);
     };
 
@@ -25,12 +25,16 @@ class SimHub : public HubBase<SimHub> {
     bool Busy() final { return false; }
     int DetectInstalledDevices() final;
 
-    template <typename F> void SetGetFocusUmFunction(F f) {
-        getFocusUmFunc_ = f;
+    template <typename F> void SetGetSpecimenFocusUmFunction(F f) {
+        getSpecimenFocusUmFunc_ = f;
     }
 
-    template <typename F> void SetGetXYUmFunction(F f) { getXYUmFunc_ = f; }
+    template <typename F> void SetGetSpecimenXYUmFunction(F f) {
+        getSpecimenXYUmFunc_ = f;
+    }
 
-    double GetFocusUm() { return getFocusUmFunc_(); }
-    std::pair<double, double> GetXYUm() { return getXYUmFunc_(); }
+    double GetSpecimenFocusUm() { return getSpecimenFocusUmFunc_(); }
+    std::pair<double, double> GetSpecimenXYUm() {
+        return getSpecimenXYUmFunc_();
+    }
 };

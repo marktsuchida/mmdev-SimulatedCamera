@@ -145,7 +145,7 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
         (void)ret;
 
         auto *hub = static_cast<SimHub *>(this->GetParentHub());
-        hub->SetGetXYUmFunction([this] {
+        hub->SetGetSpecimenXYUmFunction([this] {
             double x_um, y_um;
             (void)this->GetPositionUm(x_um, y_um);
             return std::make_pair(x_um, y_um);
@@ -156,7 +156,8 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
 
     int Shutdown() final {
         auto *hub = static_cast<SimHub *>(this->GetParentHub());
-        hub->SetGetXYUmFunction([] { return std::make_pair(0.0, 0.0); });
+        hub->SetGetSpecimenXYUmFunction(
+            [] { return std::make_pair(0.0, 0.0); });
         model_.Halt();
         delayer_.CancelAll();
         return DEVICE_OK;

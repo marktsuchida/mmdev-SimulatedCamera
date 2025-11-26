@@ -50,19 +50,20 @@ class SimCam : public CCameraBase<SimCam> {
     }
 
     int Initialize() final {
-        int ret = CreateProperty(MM::g_Keyword_Exposure,
-                       std::to_string(exposure_ms_).c_str(), MM::Float, false,
-                       new MM::ActionLambda([this](MM::PropertyBase *pProp,
-                                                   MM::ActionType eAct) {
-                           if (eAct == MM::BeforeGet) {
-                               pProp->Set(GetExposure());
-                           } else if (eAct == MM::AfterSet) {
-                               double e{};
-                               pProp->Get(e);
-                               SetExposure(e);
-                           }
-                           return DEVICE_OK;
-                       }));
+        int ret = CreateProperty(
+            MM::g_Keyword_Exposure, std::to_string(exposure_ms_).c_str(),
+            MM::Float, false,
+            new MM::ActionLambda(
+                [this](MM::PropertyBase *pProp, MM::ActionType eAct) {
+                    if (eAct == MM::BeforeGet) {
+                        pProp->Set(GetExposure());
+                    } else if (eAct == MM::AfterSet) {
+                        double e{};
+                        pProp->Get(e);
+                        SetExposure(e);
+                    }
+                    return DEVICE_OK;
+                }));
         assert(ret == DEVICE_OK);
         ret = SetPropertyLimits(MM::g_Keyword_Exposure, 0.001, 10'000.0);
         assert(ret == DEVICE_OK);
@@ -91,8 +92,8 @@ class SimCam : public CCameraBase<SimCam> {
         const auto startTime = std::chrono::steady_clock::now();
 
         auto *hub = static_cast<SimHub *>(GetParentHub());
-        const auto z = hub->GetFocusUm();
-        const auto xy = hub->GetXYUm();
+        const auto z = hub->GetSpecimenFocusUm();
+        const auto xy = hub->GetSpecimenXYUm();
 
         const std::size_t nPixels = roiWidth_ * roiHeight_;
         snapBuffer_ =
