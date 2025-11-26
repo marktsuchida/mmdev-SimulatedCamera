@@ -51,7 +51,7 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
               });
           }) {
         // Adjust default for stage-like velocity (100 um/s).
-        model_.ReciprocalSlewRateSeconds(0.01 * umPerStep_);
+        model_.ReciprocalSlewRateSeconds(umPerStep_ / 100.0);
     }
 
     int Initialize() final {
