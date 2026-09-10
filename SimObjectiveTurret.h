@@ -20,6 +20,7 @@ public:
         // create default positions and labels
         SetPositionLabel(0, "1x0.3NA");
         SetPositionLabel(1, "4x1.0NA");
+        SetPositionLabel(2, "20x1.4NA");
 
         // State
         // -----
@@ -40,12 +41,14 @@ public:
             switch (state_) {
                 default: return 10.0; break;
                 case 1: return 2.5; break;
+                case 2: return 0.5; break;
             }
         });
         hub->SetGetSpecimenNAFunction([this] {
             switch (state_) {
                 default: return 0.3; break;
                 case 1: return 1.0; break;
+                case 2: return 1.4; break;
             }
         });
 
@@ -88,7 +91,7 @@ public:
     }
 
 private:
-    long numPos_ = 2;
+    long numPos_ = 3;
     bool busy_ = false;
     bool initialized_ = false;
     std::string name_;
