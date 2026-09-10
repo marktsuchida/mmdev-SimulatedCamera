@@ -83,7 +83,7 @@ template <typename T> class SimulatedSpecimen {
 
     void Draw(T *buffer, double x_um, double y_um, double z_um,
               std::size_t width, std::size_t height, double um_per_px,
-              double intensity) {
+              double na, double intensity) {
         const auto &filaments = filaments_;
 
         BLImage img(static_cast<int>(width), static_cast<int>(height),
@@ -131,7 +131,7 @@ template <typename T> class SimulatedSpecimen {
         }
 
         // Defocus
-        const auto sigmaUm = GaussianSigmaForDefocus(float(z_um), 1.4f, 1.33f);
+        const auto sigmaUm = GaussianSigmaForDefocus(float(z_um), float(na), 1.33f);
         const auto sigmaPixels = sigmaUm / float(um_per_px);
         FastGaussian2D(fImage.data(), width, height, sigmaPixels);
 

@@ -13,6 +13,8 @@ class SimHub : public HubBase<SimHub> {
     std::function<std::pair<double, double>()> getSpecimenXYUmFunc_ = [] {
         return std::make_pair(0.0, 0.0);
     };
+    std::function<double()> getSpecimenUmPerPxFunc_ = [] { return 1.0; };
+    std::function<double()> getSpecimenNAFunc_ = [] { return 1.0; };
 
   public:
     explicit SimHub(std::string name) : name_(std::move(name)) {}
@@ -33,8 +35,18 @@ class SimHub : public HubBase<SimHub> {
         getSpecimenXYUmFunc_ = f;
     }
 
+    template <typename F> void SetGetSpecimenUmPerPxFunction(F f) {
+        getSpecimenUmPerPxFunc_ = f;
+    }
+
+    template <typename F> void SetGetSpecimenNAFunction(F f) {
+        getSpecimenNAFunc_ = f;
+    }
+
     double GetSpecimenFocusUm() { return getSpecimenFocusUmFunc_(); }
     std::pair<double, double> GetSpecimenXYUm() {
         return getSpecimenXYUmFunc_();
     }
+    double GetSpecimenUmPerPx() { return getSpecimenUmPerPxFunc_(); }
+    double GetSpecimenNA() { return getSpecimenNAFunc_(); }
 };
