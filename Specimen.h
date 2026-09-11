@@ -179,7 +179,7 @@ template <typename T> class FilamentSpecimen {
 
 template <typename T> class PunctaSpecimen {
     struct Focus {
-        double x, y, radius, brightness; // brightness in [0, 1]
+        double x, y, radius, brightness;
     };
     struct Nucleus {
         double x, y, radius;
@@ -191,8 +191,6 @@ template <typename T> class PunctaSpecimen {
 
   public:
     explicit PunctaSpecimen() {
-        // Same field extent as FilamentSpecimen, so both channels image the
-        // same region of the (notional) coverslip.
         rnd::uniform_real_distribution<> xy0Distrib(-2000.0, 2000.0);
         rnd::uniform_real_distribution<> nucleusRadiusDistrib(15.0, 30.0);
         rnd::uniform_int_distribution<> focusCountDistrib(1, 6);

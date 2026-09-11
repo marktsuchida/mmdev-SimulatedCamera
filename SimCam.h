@@ -24,16 +24,12 @@ class SimCam : public CCameraBase<SimCam> {
     static constexpr unsigned sensorWidth_ = 512;
     static constexpr unsigned sensorHeight_ = 512;
 
-    // Allowed values for the MM::g_Keyword_Channel ("Channel") property,
-    // which selects which simulated specimen is imaged. Both specimens are
-    // always kept around (and keep their own state across switches), so
-    // toggling the property is just a choice of which one to render.
-    static constexpr const char *channelFilaments_ = "Filaments";
-    static constexpr const char *channelPuncta_ = "Puncta";
+    static constexpr const char *modeFilaments_ = "Filaments";
+    static constexpr const char *modePuncta_ = "Puncta";
 
     FilamentSpecimen<std::uint16_t> filamentSpecimen_;
     PunctaSpecimen<std::uint16_t> punctaSpecimen_;
-    std::string channel_ = channelFilaments_;
+    std::string mode_ = modeFilaments_;
 
     // Camera state
     double exposure_ms_ = 100.0;
@@ -83,22 +79,22 @@ class SimCam : public CCameraBase<SimCam> {
         assert(ret == DEVICE_OK);
 
         ret = CreateProperty(
-            MM::g_Keyword_Channel, channel_.c_str(), MM::String, false,
+            "Mode", mode_.c_str(), MM::String, false,
             new MM::ActionLambda(
                 [this](MM::PropertyBase *pProp, MM::ActionType eAct) {
                     if (eAct == MM::BeforeGet) {
-                        pProp->Set(channel_.c_str());
+                        pProp->Set(mode_.c_str());
                     } else if (eAct == MM::AfterSet) {
                         std::string value;
                         pProp->Get(value);
-                        channel_ = value;
+                        mode_ = value;
                     }
                     return DEVICE_OK;
                 }));
         assert(ret == DEVICE_OK);
-        ret = AddAllowedValue(MM::g_Keyword_Channel, channelFilaments_);
+        ret = AddAllowedValue("Mode", modeFilaments_);
         assert(ret == DEVICE_OK);
-        ret = AddAllowedValue(MM::g_Keyword_Channel, channelPuncta_);
+        ret = AddAllowedValue("Mode", modePuncta_);
         assert(ret == DEVICE_OK);
         (void)ret;
 
@@ -145,7 +141,7 @@ class SimCam : public CCameraBase<SimCam> {
                                  GetBinning() * GetBinning() *
                                  (na * na * na * na) /
                                  (magnification * magnification);
-        if (channel_ == channelPuncta_) {
+        if (mode_ == modePuncta_) {
             punctaSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
                                  roiHeight_, umPerPx, na,
                                  intensity);
