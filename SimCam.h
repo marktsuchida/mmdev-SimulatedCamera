@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SimHub.h"
-#include "SimulatedSpecimen.h"
+#include "Specimen.h"
 
 #include "DeviceBase.h"
 
@@ -24,7 +24,16 @@ class SimCam : public CCameraBase<SimCam> {
     static constexpr unsigned sensorWidth_ = 512;
     static constexpr unsigned sensorHeight_ = 512;
 
-    SimulatedSpecimen<std::uint16_t> specimen_;
+    // Allowed values for the MM::g_Keyword_Channel ("Channel") property,
+    // which selects which simulated specimen is imaged. Both specimens are
+    // always kept around (and keep their own state across switches), so
+    // toggling the property is just a choice of which one to render.
+    static constexpr const char *channelFilaments_ = "Filaments";
+    static constexpr const char *channelPuncta_ = "Puncta";
+
+    FilamentSpecimen<std::uint16_t> filamentSpecimen_;
+    PunctaSpecimen<std::uint16_t> punctaSpecimen_;
+    std::string channel_ = channelFilaments_;
 
     // Camera state
     double exposure_ms_ = 100.0;
@@ -72,6 +81,25 @@ class SimCam : public CCameraBase<SimCam> {
         assert(ret == DEVICE_OK);
         ret = AddAllowedValue(MM::g_Keyword_Binning, "1");
         assert(ret == DEVICE_OK);
+
+        ret = CreateProperty(
+            MM::g_Keyword_Channel, channel_.c_str(), MM::String, false,
+            new MM::ActionLambda(
+                [this](MM::PropertyBase *pProp, MM::ActionType eAct) {
+                    if (eAct == MM::BeforeGet) {
+                        pProp->Set(channel_.c_str());
+                    } else if (eAct == MM::AfterSet) {
+                        std::string value;
+                        pProp->Get(value);
+                        channel_ = value;
+                    }
+                    return DEVICE_OK;
+                }));
+        assert(ret == DEVICE_OK);
+        ret = AddAllowedValue(MM::g_Keyword_Channel, channelFilaments_);
+        assert(ret == DEVICE_OK);
+        ret = AddAllowedValue(MM::g_Keyword_Channel, channelPuncta_);
+        assert(ret == DEVICE_OK);
         (void)ret;
 
         return DEVICE_OK;
@@ -117,8 +145,15 @@ class SimCam : public CCameraBase<SimCam> {
                                  GetBinning() * GetBinning() *
                                  (na * na * na * na) /
                                  (magnification * magnification);
-        specimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_, roiHeight_,
-                       umPerPx, na, intensity);
+        if (channel_ == channelPuncta_) {
+            punctaSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
+                                 roiHeight_, umPerPx, na,
+                                 intensity);
+        } else {
+            filamentSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
+                                   roiHeight_, umPerPx, na,
+                                   intensity);
+        }
 
         std::chrono::duration<double, std::milli> exposure(GetExposure());
         const auto finishTime =
