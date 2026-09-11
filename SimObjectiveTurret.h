@@ -77,7 +77,7 @@ public:
         CDeviceUtils::CopyLimitedString(name, name_.c_str());
     }
 
-    bool Busy() {return busy_;};
+    bool Busy() {return false;};
 
     unsigned long GetNumberOfPositions() const {return static_cast<long>(objectives_.size());}
 
@@ -98,7 +98,6 @@ public:
     }
 
 private:
-    bool busy_ = false;
     bool initialized_ = false;
     std::string name_;
     long state_ = 0;
