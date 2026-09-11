@@ -3,7 +3,21 @@
 #include "SimHub.h"
 #include "DeviceBase.h"
 
+#include <array>
+#include <cstddef>
+#include <cstdio>
+#include <string>
+#include <utility>
+
 class SimObjectiveTurret : public CStateDeviceBase<SimObjectiveTurret> {
+
+    // {magnification, NA} pairs.
+    static constexpr std::array<std::pair<int, double>, 3> objectives_ = {{
+        {4, 0.13},
+        {60, 0.95},
+    }};
+    // Derives um/px from magnification
+    static constexpr double cameraPixelPitchUm_ = 6.5;
 
 public:
     SimObjectiveTurret(std::string name): name_(std::move(name)) {
@@ -18,9 +32,12 @@ public:
         int ret{};
 
         // create default positions and labels
-        SetPositionLabel(0, "1x0.3NA");
-        SetPositionLabel(1, "4x1.0NA");
-        SetPositionLabel(2, "20x1.4NA");
+        for (std::size_t i = 0; i < objectives_.size(); ++i) {
+            const auto &[magnification, na] = objectives_[i];
+            char label[32];
+            std::snprintf(label, sizeof(label), "%dx%gNA", magnification, na);
+            SetPositionLabel(static_cast<long>(i), label);
+        }
 
         // State
         // -----
@@ -38,18 +55,12 @@ public:
 
         auto *hub = static_cast<SimHub *>(this->GetParentHub());
         hub->SetGetSpecimenUmPerPxFunction([this] {
-            switch (state_) {
-                default: return 10.0; break;
-                case 1: return 2.5; break;
-                case 2: return 0.5; break;
-            }
+            const int magnification =
+                objectives_[static_cast<std::size_t>(state_)].first;
+            return cameraPixelPitchUm_ / magnification;
         });
         hub->SetGetSpecimenNAFunction([this] {
-            switch (state_) {
-                default: return 0.3; break;
-                case 1: return 1.0; break;
-                case 2: return 1.4; break;
-            }
+            return objectives_[static_cast<std::size_t>(state_)].second;
         });
 
         initialized_ = true;
@@ -72,7 +83,7 @@ public:
 
     bool Busy() {return busy_;};
 
-    unsigned long GetNumberOfPositions() const {return numPos_;}
+    unsigned long GetNumberOfPositions() const {return static_cast<long>(objectives_.size());}
 
     int OnState(MM::PropertyBase* pProp, MM::ActionType eAct) {
         if (eAct == MM::BeforeGet) {
@@ -80,7 +91,7 @@ public:
         } else if (eAct == MM::AfterSet) {
             long newState;
             pProp->Get(newState);
-            if (newState >= 0 && newState < numPos_) {
+            if (newState >= 0 && newState < static_cast<long>(objectives_.size())) {
                 state_ = newState;
             } else {
                 pProp->Set(state_);
@@ -91,7 +102,6 @@ public:
     }
 
 private:
-    long numPos_ = 3;
     bool busy_ = false;
     bool initialized_ = false;
     std::string name_;
