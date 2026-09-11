@@ -11,10 +11,19 @@
 
 class SimObjectiveTurret : public CStateDeviceBase<SimObjectiveTurret> {
 
-    // {magnification, NA} pairs.
-    static constexpr std::array<std::pair<int, double>, 2> objectives_ = {{
-        {4, 0.13},
-        {60, 0.95},
+    struct Objective {
+        int magnification;
+        double na;
+        const char *medium = nullptr;
+    };
+
+    static constexpr std::array<Objective, 6> objectives_ = {{
+        {10, 0.3},
+        {20, 0.7},
+        {40, 0.75},
+        {40, 0.3, "Oil"},
+        {60, 1.4, "Oil"},
+        {100, 1.4, "Oil"},
     }};
 
 public:
@@ -31,9 +40,15 @@ public:
 
         // create default positions and labels
         for (std::size_t i = 0; i < objectives_.size(); ++i) {
-            const auto &[magnification, na] = objectives_[i];
+            const auto &obj = objectives_[i];
             char label[32];
-            std::snprintf(label, sizeof(label), "%dx %.2fNA", magnification, na);
+            if (obj.medium) {
+                std::snprintf(label, sizeof(label), "%dx %.2fNA %s",
+                              obj.magnification, obj.na, obj.medium);
+            } else {
+                std::snprintf(label, sizeof(label), "%dx %.2fNA",
+                              obj.magnification, obj.na);
+            }
             SetPositionLabel(static_cast<long>(i), label);
         }
 
@@ -53,10 +68,10 @@ public:
 
         auto *hub = static_cast<SimHub *>(this->GetParentHub());
         hub->SetGetMagnificationFunction([this] {
-            return objectives_[static_cast<std::size_t>(state_)].first;
+            return objectives_[static_cast<std::size_t>(state_)].magnification;
         });
         hub->SetGetNAFunction([this] {
-            return objectives_[static_cast<std::size_t>(state_)].second;
+            return objectives_[static_cast<std::size_t>(state_)].na;
         });
 
         initialized_ = true;

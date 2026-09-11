@@ -101,7 +101,7 @@ class SimCam : public CCameraBase<SimCam> {
 
         const double magnification = hub->GetMagnification();
         const double na = hub->GetNA();
-        const double umPerPx = 10 / magnification;
+        const double umPerPx = 100 / magnification;
         // Derive the center of the FOV
         const double x =
             xy.first - umPerPx * (double(roiX_) - double(sensorWidth_) / 2.0);
