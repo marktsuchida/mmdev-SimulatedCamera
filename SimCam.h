@@ -25,10 +25,10 @@ class SimCam : public CCameraBase<SimCam> {
     static constexpr unsigned sensorHeight_ = 512;
 
     static constexpr const char *modeFilaments_ = "Filaments";
-    static constexpr const char *modePuncta_ = "Puncta";
+    static constexpr const char *modeNuclei_ = "Nuclei";
 
-    FilamentSpecimen<std::uint16_t> filamentSpecimen_;
-    PunctaSpecimen<std::uint16_t> punctaSpecimen_;
+    FilamentsSpecimen<std::uint16_t> filamentsSpecimen_;
+    NucleiSpecimen<std::uint16_t> nucleiSpecimen_;
     std::string mode_ = modeFilaments_;
 
     // Camera state
@@ -94,7 +94,7 @@ class SimCam : public CCameraBase<SimCam> {
         assert(ret == DEVICE_OK);
         ret = AddAllowedValue("Mode", modeFilaments_);
         assert(ret == DEVICE_OK);
-        ret = AddAllowedValue("Mode", modePuncta_);
+        ret = AddAllowedValue("Mode", modeNuclei_);
         assert(ret == DEVICE_OK);
         (void)ret;
 
@@ -141,14 +141,14 @@ class SimCam : public CCameraBase<SimCam> {
                                  GetBinning() * GetBinning() *
                                  (na * na * na * na) /
                                  (magnification * magnification);
-        if (mode_ == modePuncta_) {
-            punctaSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
+        if (mode_ == modeNuclei_) {
+            nucleiSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
                                  roiHeight_, umPerPx, na,
                                  intensity);
         } else {
-            filamentSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
-                                   roiHeight_, umPerPx, na,
-                                   intensity);
+            filamentsSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
+                                    roiHeight_, umPerPx, na,
+                                    intensity);
         }
 
         std::chrono::duration<double, std::milli> exposure(GetExposure());

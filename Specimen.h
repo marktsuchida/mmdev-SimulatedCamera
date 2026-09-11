@@ -134,7 +134,7 @@ void RenderSpecimenImage(T *buffer, double x_um, double y_um, double z_um,
     });
 }
 
-template <typename T> class FilamentSpecimen {
+template <typename T> class FilamentsSpecimen {
     struct Filament {
         double x0, y0, x1, y1;
     };
@@ -143,7 +143,7 @@ template <typename T> class FilamentSpecimen {
     std::vector<Filament> filaments_;
 
   public:
-    explicit FilamentSpecimen() {
+    explicit FilamentsSpecimen() {
         using std::cos;
         using std::sin;
         rnd::normal_distribution<> xy0Distrib(0.0, 1000.0);
@@ -177,25 +177,25 @@ template <typename T> class FilamentSpecimen {
     }
 };
 
-template <typename T> class PunctaSpecimen {
-    struct Focus {
+template <typename T> class NucleiSpecimen {
+    struct Punctum {
         double x, y, radius, brightness;
     };
     struct Nucleus {
         double x, y, radius;
-        std::vector<Focus> foci;
+        std::vector<Punctum> puncta;
     };
 
     rnd::mt19937 rng_;
     std::vector<Nucleus> nuclei_;
 
   public:
-    explicit PunctaSpecimen() {
+    explicit NucleiSpecimen() {
         rnd::uniform_real_distribution<> xy0Distrib(-2000.0, 2000.0);
         rnd::uniform_real_distribution<> nucleusRadiusDistrib(15.0, 30.0);
-        rnd::uniform_int_distribution<> focusCountDistrib(1, 6);
-        rnd::uniform_real_distribution<> focusRadiusDistrib(0.5, 1.5);
-        rnd::uniform_real_distribution<> focusBrightnessDistrib(0.4, 1.0);
+        rnd::uniform_int_distribution<> punctumCountDistrib(1, 6);
+        rnd::uniform_real_distribution<> punctumRadiusDistrib(0.5, 1.5);
+        rnd::uniform_real_distribution<> punctumBrightnessDistrib(0.4, 1.0);
 
         for (int i = 0; i < 20; ++i) {
             Nucleus nucleus;
@@ -205,12 +205,12 @@ template <typename T> class PunctaSpecimen {
 
             rnd::normal_distribution<> offsetDistrib(0.0,
                                                       nucleus.radius / 3.0);
-            const int nFoci = focusCountDistrib(rng_);
-            for (int f = 0; f < nFoci; ++f) {
-                nucleus.foci.push_back({nucleus.x + offsetDistrib(rng_),
-                                        nucleus.y + offsetDistrib(rng_),
-                                        focusRadiusDistrib(rng_),
-                                        focusBrightnessDistrib(rng_)});
+            const int nPuncta = punctumCountDistrib(rng_);
+            for (int p = 0; p < nPuncta; ++p) {
+                nucleus.puncta.push_back({nucleus.x + offsetDistrib(rng_),
+                                          nucleus.y + offsetDistrib(rng_),
+                                          punctumRadiusDistrib(rng_),
+                                          punctumBrightnessDistrib(rng_)});
             }
             nuclei_.push_back(std::move(nucleus));
         }
@@ -226,10 +226,10 @@ template <typename T> class PunctaSpecimen {
                 for (const Nucleus &n : nuclei) {
                     ctx.fillCircle(BLCircle(n.x, n.y, n.radius),
                                   BLRgba32(40, 40, 40));
-                    for (const Focus &f : n.foci) {
+                    for (const Punctum &p : n.puncta) {
                         const auto v = static_cast<std::uint32_t>(
-                            std::clamp(255.0 * f.brightness, 0.0, 255.0));
-                        ctx.fillCircle(BLCircle(f.x, f.y, f.radius),
+                            std::clamp(255.0 * p.brightness, 0.0, 255.0));
+                        ctx.fillCircle(BLCircle(p.x, p.y, p.radius),
                                       BLRgba32(v, v, v));
                     }
                 }

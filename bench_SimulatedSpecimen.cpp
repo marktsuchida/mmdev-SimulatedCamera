@@ -6,8 +6,8 @@
 #include <cstdint>
 #include <vector>
 
-void bm_filament_specimen_draw(benchmark::State &state) {
-    FilamentSpecimen<std::uint16_t> specimen;
+void bm_filaments_specimen_draw(benchmark::State &state) {
+    FilamentsSpecimen<std::uint16_t> specimen;
     const auto z_um = double(state.range(0));
     const std::size_t width = 512, height = 512;
     std::vector<std::uint16_t> buffer(width * height);
@@ -17,13 +17,13 @@ void bm_filament_specimen_draw(benchmark::State &state) {
         benchmark::DoNotOptimize(data);
     }
 }
-BENCHMARK(bm_filament_specimen_draw)
+BENCHMARK(bm_filaments_specimen_draw)
     ->Arg(0)
     ->Arg(50)
     ->Unit(benchmark::kMillisecond);
 
-void bm_puncta_specimen_draw(benchmark::State &state) {
-    PunctaSpecimen<std::uint16_t> specimen;
+void bm_nuclei_specimen_draw(benchmark::State &state) {
+    NucleiSpecimen<std::uint16_t> specimen;
     const auto z_um = double(state.range(0));
     const std::size_t width = 512, height = 512;
     std::vector<std::uint16_t> buffer(width * height);
@@ -33,7 +33,7 @@ void bm_puncta_specimen_draw(benchmark::State &state) {
         benchmark::DoNotOptimize(data);
     }
 }
-BENCHMARK(bm_puncta_specimen_draw)
+BENCHMARK(bm_nuclei_specimen_draw)
     ->Arg(0)
     ->Arg(50)
     ->Unit(benchmark::kMillisecond);
