@@ -12,12 +12,10 @@
 class SimObjectiveTurret : public CStateDeviceBase<SimObjectiveTurret> {
 
     // {magnification, NA} pairs.
-    static constexpr std::array<std::pair<int, double>, 3> objectives_ = {{
+    static constexpr std::array<std::pair<int, double>, 2> objectives_ = {{
         {4, 0.13},
         {60, 0.95},
     }};
-    // Derives um/px from magnification
-    static constexpr double cameraPixelPitchUm_ = 6.5;
 
 public:
     SimObjectiveTurret(std::string name): name_(std::move(name)) {
@@ -54,10 +52,8 @@ public:
             return ret;
 
         auto *hub = static_cast<SimHub *>(this->GetParentHub());
-        hub->SetGetSpecimenUmPerPxFunction([this] {
-            const int magnification =
-                objectives_[static_cast<std::size_t>(state_)].first;
-            return cameraPixelPitchUm_ / magnification;
+        hub->SetGetSpecimenMagnificationFunction([this] {
+            return objectives_[static_cast<std::size_t>(state_)].first;
         });
         hub->SetGetSpecimenNAFunction([this] {
             return objectives_[static_cast<std::size_t>(state_)].second;
@@ -70,7 +66,7 @@ public:
     int Shutdown() final {
         if (initialized_) {
             auto *hub = static_cast<SimHub *>(this->GetParentHub());
-            hub->SetGetSpecimenUmPerPxFunction([] { return 1.0; });
+            hub->SetGetSpecimenMagnificationFunction([] { return 1.0; });
             hub->SetGetSpecimenNAFunction([] { return 1.0; });
             initialized_ = false;
         }

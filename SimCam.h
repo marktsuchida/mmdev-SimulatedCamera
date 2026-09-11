@@ -99,18 +99,21 @@ class SimCam : public CCameraBase<SimCam> {
         snapBuffer_ =
             std::unique_ptr<std::uint16_t[]>(new std::uint16_t[nPixels]);
 
-        const double umPerPx = hub->GetSpecimenUmPerPx();
+        const double magnification = hub->GetSpecimenMagnification();
+        const double na = hub->GetSpecimenNA();
+        const double umPerPx = 10 / magnification;
         // Derive the center of the FOV
         const double x =
             xy.first - umPerPx * (double(roiX_) - double(sensorWidth_) / 2.0);
         const double y =
             -xy.second -
             umPerPx * (double(roiY_) - double(sensorHeight_) / 2.0);
-        // TODO: Intensity could also change with objective mag and NA
-        const double intensity =
-            0.05 * GetExposure() * GetBinning() * GetBinning();
+        const double intensity = 2800.0 * GetExposure() *
+                                 GetBinning() * GetBinning() *
+                                 (na * na * na * na) /
+                                 (magnification * magnification);
         specimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_, roiHeight_,
-                       umPerPx, hub->GetSpecimenNA(), intensity);
+                       umPerPx, na, intensity);
 
         std::chrono::duration<double, std::milli> exposure(GetExposure());
         const auto finishTime =
