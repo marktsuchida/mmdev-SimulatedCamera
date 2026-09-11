@@ -108,6 +108,7 @@ class SimCam : public CCameraBase<SimCam> {
         const double y =
             -xy.second -
             umPerPx * (double(roiY_) - double(sensorHeight_) / 2.0);
+        // Derive intensity using epi-illumination formula
         const double intensity = 2800.0 * GetExposure() *
                                  GetBinning() * GetBinning() *
                                  (na * na * na * na) /
