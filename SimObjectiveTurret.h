@@ -33,7 +33,7 @@ public:
         for (std::size_t i = 0; i < objectives_.size(); ++i) {
             const auto &[magnification, na] = objectives_[i];
             char label[32];
-            std::snprintf(label, sizeof(label), "%dx%gNA", magnification, na);
+            std::snprintf(label, sizeof(label), "%dx %.2fNA", magnification, na);
             SetPositionLabel(static_cast<long>(i), label);
         }
 
