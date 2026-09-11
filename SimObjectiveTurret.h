@@ -52,10 +52,10 @@ public:
             return ret;
 
         auto *hub = static_cast<SimHub *>(this->GetParentHub());
-        hub->SetGetSpecimenMagnificationFunction([this] {
+        hub->SetGetMagnificationFunction([this] {
             return objectives_[static_cast<std::size_t>(state_)].first;
         });
-        hub->SetGetSpecimenNAFunction([this] {
+        hub->SetGetNAFunction([this] {
             return objectives_[static_cast<std::size_t>(state_)].second;
         });
 
@@ -66,8 +66,8 @@ public:
     int Shutdown() final {
         if (initialized_) {
             auto *hub = static_cast<SimHub *>(this->GetParentHub());
-            hub->SetGetSpecimenMagnificationFunction([] { return 1.0; });
-            hub->SetGetSpecimenNAFunction([] { return 1.0; });
+            hub->SetGetMagnificationFunction([] { return 1.0; });
+            hub->SetGetNAFunction([] { return 1.0; });
             initialized_ = false;
         }
         return DEVICE_OK;

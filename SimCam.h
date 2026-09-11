@@ -92,15 +92,15 @@ class SimCam : public CCameraBase<SimCam> {
         const auto startTime = std::chrono::steady_clock::now();
 
         auto *hub = static_cast<SimHub *>(GetParentHub());
-        const auto z = hub->GetSpecimenFocusUm();
-        const auto xy = hub->GetSpecimenXYUm();
+        const auto z = hub->GetFocusUm();
+        const auto xy = hub->GetXYUm();
 
         const std::size_t nPixels = roiWidth_ * roiHeight_;
         snapBuffer_ =
             std::unique_ptr<std::uint16_t[]>(new std::uint16_t[nPixels]);
 
-        const double magnification = hub->GetSpecimenMagnification();
-        const double na = hub->GetSpecimenNA();
+        const double magnification = hub->GetMagnification();
+        const double na = hub->GetNA();
         const double umPerPx = 10 / magnification;
         // Derive the center of the FOV
         const double x =
