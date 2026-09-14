@@ -102,11 +102,13 @@ class SimCam : public CCameraBase<SimCam> {
         const double magnification = hub->GetMagnification();
         const double na = hub->GetNA();
         const double umPerPx = 100 / magnification;
-        // Derive the center of the FOV
+        // FOV center is -stagePosition (needed for tiles to align).
+        const double fovCenterX = -xy.first;
+        const double fovCenterY = -xy.second;
         const double x =
-            xy.first - umPerPx * (double(roiX_) - double(sensorWidth_) / 2.0);
+            fovCenterX - umPerPx * (double(roiX_) - double(sensorWidth_) / 2.0);
         const double y =
-            -xy.second -
+            fovCenterY -
             umPerPx * (double(roiY_) - double(sensorHeight_) / 2.0);
         // Derive intensity using epi-illumination formula
         const double intensity = 2800.0 * GetExposure() *
