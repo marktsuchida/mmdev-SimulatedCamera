@@ -101,8 +101,9 @@ class SimCam : public CCameraBase<SimCam> {
 
         const double magnification = hub->GetMagnification();
         const double na = hub->GetNA();
-        // 6.5um is a common size for a CMOS pixel side length
-        const double umPerPx = 6.5 / magnification;
+        // 10um is a reasonable size for a CMOS pixel side length
+        // and it makes pixel configuration simple.
+        const double umPerPx = 10.0 / magnification;
         // FOV center is -stagePosition (needed for tiles to align).
         const double fovCenterX = -xy.first;
         const double fovCenterY = -xy.second;
