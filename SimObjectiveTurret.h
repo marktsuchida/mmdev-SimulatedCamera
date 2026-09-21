@@ -21,7 +21,7 @@ class SimObjectiveTurret : public CStateDeviceBase<SimObjectiveTurret> {
         {10, 0.3},
         {20, 0.7},
         {40, 0.75},
-        {40, 0.3, "Oil"},
+        {40, 1.3, "Oil"},
         {60, 1.4, "Oil"},
         {100, 1.4, "Oil"},
     }};
