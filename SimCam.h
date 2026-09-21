@@ -105,7 +105,7 @@ class SimCam : public CCameraBase<SimCam> {
         // and it makes pixel configuration simple.
         const double umPerPx = 10.0 / magnification;
         // FOV center is -stagePosition (needed for tiles to align).
-        const double fovCenterX = -xy.first;
+        const double fovCenterX = xy.first;
         const double fovCenterY = -xy.second;
         const double x =
             fovCenterX - umPerPx * (double(roiX_) - double(sensorWidth_) / 2.0);
