@@ -11,7 +11,7 @@ class SimShutter : public CShutterBase<SimShutter> {
     bool isOpen_ = false;
 
 public:
-    SimShutter(const std::string& name) : name_(std::move(name)) {}
+    explicit SimShutter(const std::string& name) : name_(std::move(name)) {}
 
     bool Busy() final {
         // TODO: Could introduce a small delay here
@@ -36,6 +36,9 @@ public:
 
     int Shutdown() final {
         isOpen_ = false;
+        auto *hub = static_cast<SimHub *>(GetParentHub());
+        if (hub)
+            hub->SetGetShutterOpenFunction([this] { return true; });
         return DEVICE_OK;
     }
 
