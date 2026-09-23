@@ -81,6 +81,18 @@ template <typename T> class SimulatedSpecimen {
         }
     }
 
+    void DrawDark(T *buffer, std::size_t width, std::size_t height) {
+        // Gaussian (~read) noise (TODO Adjustable? Scale?)
+        // and dark offset (TODO adjustable?)
+        auto noiseDistrib = rnd::normal_distribution<float>(0.0, 50.0);
+        const float darkOffset = 100.0f;
+        const float maxVal = float(std::numeric_limits<T>::max());
+        for (std::size_t i = 0; i < width * height; ++i) {
+            buffer[i] = static_cast<T>(std::clamp(
+                std::round(noiseDistrib(rng_) + darkOffset), 0.0f, maxVal));
+        }
+    }
+
     void Draw(T *buffer, double x_um, double y_um, double z_um,
               std::size_t width, std::size_t height, double um_per_px,
               double intensity) {
@@ -111,8 +123,9 @@ template <typename T> class SimulatedSpecimen {
 
         BLImageData data;
         BLResult status = img.getData(&data);
+
+        DrawDark(buffer, width, height);
         if (status != BL_SUCCESS) {
-            std::memset(buffer, 0, sizeof(T) * width * height);
             return; // Give up (shouldn't happen).
         }
 
@@ -147,19 +160,13 @@ template <typename T> class SimulatedSpecimen {
                 return p > 0.0f ? FastPoisson(p, rng_, uniformDistForPoisson)
                                 : p;
             });
-
-        // Gaussian (~read) noise (TODO Adjustable? Scale?)
-        // and dark offset (TODO adjustable?)
-        auto noiseDistrib = rnd::normal_distribution<float>(0.0, 50.0);
-        const float darkOffset = 100.0f;
-        std::transform(
-            fImage.begin(), fImage.end(), fImage.begin(),
-            [&](float p) { return p + noiseDistrib(rng_) + darkOffset; });
-
-        // Clamp to pixel type range
-        std::transform(fImage.begin(), fImage.end(), buffer, [](float v) {
-            return static_cast<T>(std::clamp(
-                std::round(v), 0.0f, float(std::numeric_limits<T>::max())));
-        });
+        
+        // Add the signal to the dark frame
+        const float maxVal = float(std::numeric_limits<T>::max());
+        std::transform(fImage.begin(), fImage.end(), buffer, buffer,
+                       [maxVal](float signal, T dark) {
+                           return static_cast<T>(std::clamp(
+                               std::round(float(dark) + signal), 0.0f, maxVal));
+                       });
     }
 };

@@ -1,6 +1,7 @@
 #include "SimCam.h"
 #include "SimFocus.h"
 #include "SimHub.h"
+#include "SimShutter.h"
 #include "SimXY.h"
 
 #include "DeviceBase.h"
@@ -8,6 +9,7 @@
 
 MODULE_API void InitializeModuleData() {
     RegisterDevice("SimHub", MM::HubDevice, "Hub for simulated camera");
+    RegisterDevice("SimShutter", MM::ShutterDevice, "Simulated shutter");
 }
 
 MODULE_API MM::Device *CreateDevice(const char *name) {
@@ -26,6 +28,9 @@ MODULE_API MM::Device *CreateDevice(const char *name) {
     }
     if (n == "SimXY") {
         return new SimXY<AsyncProcessModel<2>>("SimXY");
+    }
+    if (n == "SimShutter") {
+        return new SimShutter("SimShutter");
     }
     return nullptr;
 }

@@ -13,6 +13,7 @@ class SimHub : public HubBase<SimHub> {
     std::function<std::pair<double, double>()> getSpecimenXYUmFunc_ = [] {
         return std::make_pair(0.0, 0.0);
     };
+    std::function<bool()> getShutterOpenFunc_ = [] { return true; };
 
   public:
     explicit SimHub(std::string name) : name_(std::move(name)) {}
@@ -33,8 +34,13 @@ class SimHub : public HubBase<SimHub> {
         getSpecimenXYUmFunc_ = f;
     }
 
+    template <typename F> void SetGetShutterOpenFunction(F f) {
+        getShutterOpenFunc_ = f;
+    }
+
     double GetSpecimenFocusUm() { return getSpecimenFocusUmFunc_(); }
     std::pair<double, double> GetSpecimenXYUm() {
         return getSpecimenXYUmFunc_();
     }
+    bool IsShutterOpen() { return getShutterOpenFunc_(); }
 };
