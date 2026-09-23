@@ -81,17 +81,6 @@ template <typename T> class SimulatedSpecimen {
         }
     }
 
-    void DrawDark(T *buffer, std::size_t width, std::size_t height) {
-        // Gaussian (~read) noise (TODO Adjustable? Scale?)
-        // and dark offset (TODO adjustable?)
-        const float darkOffset = 100.0f;
-        const float maxVal = float(std::numeric_limits<T>::max());
-        for (std::size_t i = 0; i < width * height; ++i) {
-            buffer[i] = static_cast<T>(std::clamp(
-                std::round(noiseDistrib_(rng_) + darkOffset), 0.0f, maxVal));
-        }
-    }
-
     void Draw(T *buffer, double x_um, double y_um, double z_um,
               std::size_t width, std::size_t height, double um_per_px,
               double intensity) {
@@ -123,7 +112,6 @@ template <typename T> class SimulatedSpecimen {
         BLImageData data;
         BLResult status = img.getData(&data);
 
-        DrawDark(buffer, width, height);
         if (status != BL_SUCCESS) {
             return; // Give up (shouldn't happen).
         }
@@ -169,7 +157,4 @@ template <typename T> class SimulatedSpecimen {
                        });
     }
 
-  private:
-    rnd::normal_distribution<float> noiseDistrib_ = rnd::normal_distribution<float>(0.0, 50.0);
-    
 };

@@ -36,6 +36,9 @@ class SimCam : public CCameraBase<SimCam> {
     // Last snap (always equal to ROI width/height)
     std::unique_ptr<std::uint16_t[]> snapBuffer_;
 
+    rnd::mt19937 rng_;
+    rnd::normal_distribution<float> noiseDistrib_{0.0f, 50.0f};
+
     // Sequence acquisition state
     std::thread seqThread_;
     std::mutex seqMutex_;
@@ -100,9 +103,8 @@ class SimCam : public CCameraBase<SimCam> {
             std::unique_ptr<std::uint16_t[]>(new std::uint16_t[nPixels]);
 
         constexpr double umPerPx = 1.0; // TODO Objective/mag
-        if (!hub->IsShutterOpen()) {
-            specimen_.DrawDark(snapBuffer_.get(), roiWidth_, roiHeight_);
-        } else {
+        DrawDark(snapBuffer_.get(), roiWidth_, roiHeight_);
+        if (hub->IsShutterOpen()) {
             const double x = xy.first - umPerPx * double(roiX_);
             const double y = -xy.second - umPerPx * double(roiY_);
             // TODO: Intensity could also change with objective mag and NA
@@ -242,5 +244,16 @@ class SimCam : public CCameraBase<SimCam> {
     int IsExposureSequenceable(bool &yesno) const final {
         yesno = false;
         return DEVICE_OK;
+    }
+
+  private:
+    void DrawDark(std::uint16_t *buffer, std::size_t width, std::size_t height) {
+        // Gaussian (~read) noise and dark offset (TODO: adjustable?)
+        const float darkOffset = 100.0f;
+        const float maxVal = float(std::numeric_limits<std::uint16_t>::max());
+        for (std::size_t i = 0; i < width * height; ++i) {
+            buffer[i] = static_cast<std::uint16_t>(std::clamp(
+                std::round(noiseDistrib_(rng_) + darkOffset), 0.0f, maxVal));
+        }
     }
 };
