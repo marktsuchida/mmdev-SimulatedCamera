@@ -113,6 +113,7 @@ template <typename T> class SimulatedSpecimen {
         BLResult status = img.getData(&data);
 
         if (status != BL_SUCCESS) {
+            std::memset(buffer, 0, sizeof(T) * width * height);
             return; // Give up (shouldn't happen).
         }
 
