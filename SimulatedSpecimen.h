@@ -84,12 +84,11 @@ template <typename T> class SimulatedSpecimen {
     void DrawDark(T *buffer, std::size_t width, std::size_t height) {
         // Gaussian (~read) noise (TODO Adjustable? Scale?)
         // and dark offset (TODO adjustable?)
-        auto noiseDistrib = rnd::normal_distribution<float>(0.0, 50.0);
         const float darkOffset = 100.0f;
         const float maxVal = float(std::numeric_limits<T>::max());
         for (std::size_t i = 0; i < width * height; ++i) {
             buffer[i] = static_cast<T>(std::clamp(
-                std::round(noiseDistrib(rng_) + darkOffset), 0.0f, maxVal));
+                std::round(noiseDistrib_(rng_) + darkOffset), 0.0f, maxVal));
         }
     }
 
@@ -169,4 +168,8 @@ template <typename T> class SimulatedSpecimen {
                                std::round(float(dark) + signal), 0.0f, maxVal));
                        });
     }
+
+  private:
+    rnd::normal_distribution<float> noiseDistrib_ = rnd::normal_distribution<float>(0.0, 50.0);
+    
 };
