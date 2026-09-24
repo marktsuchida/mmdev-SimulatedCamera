@@ -14,13 +14,13 @@ class SimObjectiveTurret : public CStateDeviceBase<SimObjectiveTurret> {
     struct Objective {
         int magnification;
         double na;
-        const char *medium = nullptr;
+        const char *medium;
     };
 
     static constexpr std::array<Objective, 6> objectives_ = {{
-        {10, 0.3},
-        {20, 0.7},
-        {40, 0.75},
+        {10, 0.3, nullptr},
+        {20, 0.7, nullptr},
+        {40, 0.75, nullptr},
         {40, 1.3, "Oil"},
         {60, 1.4, "Oil"},
         {100, 1.4, "Oil"},
