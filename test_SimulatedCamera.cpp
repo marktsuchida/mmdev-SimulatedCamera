@@ -402,6 +402,25 @@ TEST_CASE("ReadOut-clamp") {
                       [](std::uint16_t v) { return v == 65535; }));
 }
 
+TEST_CASE("GaussianSigmaForDefocus") {
+    using Catch::Matchers::WithinRel;
+    const float na = GENERATE(0.3f, 0.75f, 1.4f);
+    CAPTURE(na);
+
+    SECTION("in focus") {
+        CHECK_THAT(GaussianSigmaForDefocus(0.0f, na, 1.33f, 0.52f),
+                   WithinRel(0.21f * 0.52f / na, 1e-5f));
+    }
+
+    SECTION("large defocus") {
+        for (const float dz : {-200.0f, 200.0f}) {
+            CAPTURE(dz);
+            CHECK_THAT(GaussianSigmaForDefocus(dz, na, 1.33f, 0.52f),
+                       WithinRel(0.5f * na * std::fabs(dz) / 1.33f, 1e-3f));
+        }
+    }
+}
+
 TEST_CASE("Specimen-Draw-deterministic") {
     const std::size_t width = 64, height = 48;
     std::vector<float> a(width * height, -1.0f);

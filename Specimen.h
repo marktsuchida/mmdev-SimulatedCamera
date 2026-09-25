@@ -12,14 +12,19 @@
 #include <vector>
 
 constexpr double PI = 3.1415926535897;
+constexpr float EMISSION_WAVELENGTH_UM = 0.52f; // GFP-like
 
 template <typename F>
 inline F GaussianSigmaForDefocus(F defocus_um, F numericalAperture,
-                                 F refractiveIndex) {
-    const auto radius =
-        numericalAperture * std::fabs(defocus_um) / refractiveIndex;
-    // Apply an (arbitrary) multiplier and minimum.
-    return F(0.5) * radius + F(1.0);
+                                 F refractiveIndex, F wavelength_um) {
+    // Gaussian approximation of the in-focus widefield PSF (Zhang et al.
+    // 2007, Appl Opt 46:1819): sigma = 0.21 lambda / NA.
+    const F sigma0 = F(0.21) * wavelength_um / numericalAperture;
+    // Geometric defocus blur radius, with an (arbitrary) scaling to sigma.
+    const F sigmaDefocus =
+        F(0.5) * numericalAperture * std::fabs(defocus_um) / refractiveIndex;
+    // Convolved Gaussians add in variance.
+    return std::sqrt(sigma0 * sigma0 + sigmaDefocus * sigmaDefocus);
 }
 
 // Renders the expected (noise-free) signal of a specimen into signal (width *
@@ -33,8 +38,14 @@ void RenderSpecimenImage(float *signal, double x_um, double y_um, double z_um,
                          std::size_t width, std::size_t height,
                          double um_per_px, double na, double intensity,
                          ContentFn &&drawContent) {
-    BLImage img(static_cast<int>(width), static_cast<int>(height),
-                BL_FORMAT_XRGB32);
+    const std::size_t nPixels = width * height;
+
+    BLImage img;
+    if (img.create(static_cast<int>(width), static_cast<int>(height),
+                   BL_FORMAT_XRGB32) != BL_SUCCESS) {
+        std::fill(signal, signal + nPixels, 0.0f);
+        return;
+    }
     BLContext ctx(img);
     ctx.clearAll();
 
@@ -51,8 +62,6 @@ void RenderSpecimenImage(float *signal, double x_um, double y_um, double z_um,
 
     ctx.end();
 
-    const std::size_t nPixels = width * height;
-
     BLImageData data;
     BLResult status = img.getData(&data);
     if (status != BL_SUCCESS) {
@@ -60,22 +69,20 @@ void RenderSpecimenImage(float *signal, double x_um, double y_um, double z_um,
         return; // Give up (shouldn't happen).
     }
 
-    const auto *pix = static_cast<const std::uint32_t *>(data.pixelData);
-
-    // Stride is the stride of scanlines; negative stride means bottom-up.
-    const std::intptr_t stride = data.stride / sizeof(std::uint32_t);
-    const std::intptr_t start = stride >= 0 ? 0 : (height - 1) * (-stride);
-    for (std::intptr_t j = 0; j < std::intptr_t(height); ++j) {
-        for (std::intptr_t i = 0; i < std::intptr_t(width); ++i) {
-            const auto p = pix[start + i + j * stride];
+    // pixelData points to the top-left pixel; stride (bytes) may be negative.
+    const auto *base = static_cast<const std::uint8_t *>(data.pixelData);
+    for (std::size_t j = 0; j < height; ++j) {
+        const auto *row = reinterpret_cast<const std::uint32_t *>(
+            base + std::intptr_t(j) * data.stride);
+        for (std::size_t i = 0; i < width; ++i) {
             // Green sample
-            signal[i + j * width] = static_cast<float>((p >> 8) & 0xff);
+            signal[i + j * width] = static_cast<float>((row[i] >> 8) & 0xff);
         }
     }
 
     // Defocus
-    const auto sigmaUm =
-        GaussianSigmaForDefocus(float(z_um), float(na), 1.33f);
+    const auto sigmaUm = GaussianSigmaForDefocus(float(z_um), float(na), 1.33f,
+                                                 EMISSION_WAVELENGTH_UM);
     const auto sigmaPixels = sigmaUm / float(um_per_px);
     FastGaussian2D(signal, width, height, sigmaPixels);
 
@@ -90,6 +97,9 @@ class FilamentsSpecimen {
     };
 
     std::vector<Filament> filaments_;
+
+    static constexpr double filamentWidthUm_ = 0.025;  // microtubule
+    static constexpr double relativeBrightness_ = 0.1; // arbitrary
 
   public:
     explicit FilamentsSpecimen() {
@@ -114,8 +124,16 @@ class FilamentsSpecimen {
               std::size_t width, std::size_t height, double um_per_px,
               double na, double intensity) const {
         const auto &filaments = filaments_;
+        // Blend2D renders 8-bit, so a sub-pixel stroke would quantize away.
+        // Draw at least 1 px wide and scale intensity by the width ratio,
+        // preserving signal per unit length (antialiasing gives the pixel
+        // coverage).
+        const double strokeWidth = std::max(filamentWidthUm_, um_per_px);
+        const double filamentIntensity =
+            intensity * relativeBrightness_ * filamentWidthUm_ / strokeWidth;
         RenderSpecimenImage(signal, x_um, y_um, z_um, width, height, um_per_px,
-                            na, intensity, [&](BLContext &ctx) {
+                            na, filamentIntensity, [&](BLContext &ctx) {
+                                ctx.setStrokeWidth(strokeWidth);
                                 for (const Filament &f : filaments) {
                                     BLPath path;
                                     path.moveTo(f.x0, f.y0);
