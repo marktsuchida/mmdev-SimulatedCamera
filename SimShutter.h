@@ -4,6 +4,7 @@
 
 #include "DeviceBase.h"
 
+#include <atomic>
 #include <string>
 #include <utility>
 
@@ -12,7 +13,7 @@ class SimShutter : public CShutterBase<SimShutter> {
     bool initialized_ = false;
 
     // Shutter state
-    bool isOpen_ = false;
+    std::atomic<bool> isOpen_{false};
 
   public:
     explicit SimShutter(std::string name) : name_(std::move(name)) {}
@@ -56,7 +57,7 @@ class SimShutter : public CShutterBase<SimShutter> {
             return ret;
 
         auto *hub = static_cast<SimHub *>(GetParentHub());
-        hub->SetGetShutterOpenFunction([this] { return isOpen_; });
+        hub->SetGetShutterOpenFunction([this] { return isOpen_.load(); });
         initialized_ = true;
         return DEVICE_OK;
     }
