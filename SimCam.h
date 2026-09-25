@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SimHub.h"
-#include "SimulatedSpecimen.h"
+#include "Specimen.h"
 
 #include "DeviceBase.h"
 
@@ -24,7 +24,12 @@ class SimCam : public CCameraBase<SimCam> {
     static constexpr unsigned sensorWidth_ = 512;
     static constexpr unsigned sensorHeight_ = 512;
 
-    SimulatedSpecimen<std::uint16_t> specimen_;
+    static constexpr const char *modeFilaments_ = "Filaments";
+    static constexpr const char *modeNuclei_ = "Nuclei";
+
+    FilamentsSpecimen<std::uint16_t> filamentsSpecimen_;
+    NucleiSpecimen<std::uint16_t> nucleiSpecimen_;
+    std::string mode_ = modeFilaments_;
 
     // Camera state
     double exposure_ms_ = 100.0;
@@ -72,6 +77,25 @@ class SimCam : public CCameraBase<SimCam> {
         assert(ret == DEVICE_OK);
         ret = AddAllowedValue(MM::g_Keyword_Binning, "1");
         assert(ret == DEVICE_OK);
+
+        ret =
+            CreateProperty("Mode", mode_.c_str(), MM::String, false,
+                           new MM::ActionLambda([this](MM::PropertyBase *pProp,
+                                                       MM::ActionType eAct) {
+                               if (eAct == MM::BeforeGet) {
+                                   pProp->Set(mode_.c_str());
+                               } else if (eAct == MM::AfterSet) {
+                                   std::string value;
+                                   pProp->Get(value);
+                                   mode_ = value;
+                               }
+                               return DEVICE_OK;
+                           }));
+        assert(ret == DEVICE_OK);
+        ret = AddAllowedValue("Mode", modeFilaments_);
+        assert(ret == DEVICE_OK);
+        ret = AddAllowedValue("Mode", modeNuclei_);
+        assert(ret == DEVICE_OK);
         (void)ret;
 
         return DEVICE_OK;
@@ -115,8 +139,13 @@ class SimCam : public CCameraBase<SimCam> {
         const double intensity = 2800.0 * GetExposure() * GetBinning() *
                                  GetBinning() * (na * na * na * na) /
                                  (magnification * magnification);
-        specimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_, roiHeight_,
-                       umPerPx, na, intensity);
+        if (mode_ == modeNuclei_) {
+            nucleiSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
+                                 roiHeight_, umPerPx, na, intensity);
+        } else {
+            filamentsSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
+                                    roiHeight_, umPerPx, na, intensity);
+        }
 
         std::chrono::duration<double, std::milli> exposure(GetExposure());
         const auto finishTime =
