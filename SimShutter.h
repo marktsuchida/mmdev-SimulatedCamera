@@ -32,6 +32,29 @@ class SimShutter : public CShutterBase<SimShutter> {
 
     int Initialize() final {
         isOpen_ = false;
+
+        int ret = CreateIntegerProperty(
+            MM::g_Keyword_State, 0, false,
+            new MM::ActionLambda(
+                [this](MM::PropertyBase *pProp, MM::ActionType eAct) {
+                    if (eAct == MM::BeforeGet) {
+                        pProp->Set(isOpen_ ? 1L : 0L);
+                    } else if (eAct == MM::AfterSet) {
+                        long v{};
+                        pProp->Get(v);
+                        return SetOpen(v != 0);
+                    }
+                    return DEVICE_OK;
+                }));
+        if (ret != DEVICE_OK)
+            return ret;
+        ret = AddAllowedValue(MM::g_Keyword_State, "0");
+        if (ret != DEVICE_OK)
+            return ret;
+        ret = AddAllowedValue(MM::g_Keyword_State, "1");
+        if (ret != DEVICE_OK)
+            return ret;
+
         auto *hub = static_cast<SimHub *>(GetParentHub());
         hub->SetGetShutterOpenFunction([this] { return isOpen_; });
         initialized_ = true;
