@@ -4,6 +4,9 @@
 
 #include "DeviceBase.h"
 
+#include <string>
+#include <utility>
+
 class SimShutter : public CShutterBase<SimShutter> {
     std::string name_;
     bool initialized_ = false;
@@ -21,7 +24,7 @@ class SimShutter : public CShutterBase<SimShutter> {
         return false;
     }
 
-    void GetName(char *name) const {
+    void GetName(char *name) const final {
         CDeviceUtils::CopyLimitedString(name, name_.c_str());
     }
 
@@ -45,12 +48,12 @@ class SimShutter : public CShutterBase<SimShutter> {
         return DEVICE_OK;
     }
 
-    int SetOpen(bool open = true) {
+    int SetOpen(bool open = true) final {
         isOpen_ = open;
         return DEVICE_OK;
     }
 
-    int GetOpen(bool &open) {
+    int GetOpen(bool &open) final {
         open = isOpen_;
         return DEVICE_OK;
     }
