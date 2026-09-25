@@ -7,6 +7,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <functional>
@@ -248,6 +249,70 @@ TEST_CASE("FastGaussian2D") {
     }
 }
 
+TEST_CASE("DirectGaussian2D") {
+    using Catch::Matchers::WithinAbs;
+    constexpr float sigma = 0.7f;
+
+    SECTION("impulse") {
+        std::vector<float> data(7 * 7);
+        data[7 * 3 + 3] = 1.0f;
+        gaussian_internal::DirectGaussian2D(data.data(), 7, 7, sigma);
+
+        CHECK_THAT(std::accumulate(data.begin(), data.end(), 0.0),
+                   WithinAbs(1.0, 1e-5));
+        for (std::size_t j = 0; j < 7; ++j) {
+            for (std::size_t i = 0; i < 7; ++i) {
+                CAPTURE(j, i);
+                CHECK_THAT(data[j * 7 + i],
+                           WithinAbs(data[j * 7 + 7 - i - 1], 1e-7));
+                CHECK_THAT(data[j * 7 + i],
+                           WithinAbs(data[(7 - j - 1) * 7 + i], 1e-7));
+                CHECK_THAT(data[j * 7 + i], WithinAbs(data[i * 7 + j], 1e-7));
+            }
+        }
+
+        const int radius = int(std::ceil(3.0f * sigma));
+        float wsum = 0.0f;
+        for (int k = -radius; k <= radius; ++k) {
+            wsum += std::exp(-float(k * k) / (2.0f * sigma * sigma));
+        }
+        const float w0 = 1.0f / wsum;
+        CHECK_THAT(data[7 * 3 + 3], WithinAbs(w0 * w0, 1e-6));
+    }
+
+    SECTION("constant") {
+        std::vector<float> data(7 * 5, 3.0f);
+        gaussian_internal::DirectGaussian2D(data.data(), 7, 5, sigma);
+        for (float v : data) {
+            CHECK_THAT(v, WithinAbs(3.0f, 1e-5));
+        }
+    }
+}
+
+TEST_CASE("FastGaussian2D-small-sigma") {
+    using Catch::Matchers::WithinAbs;
+    const float sigma = GENERATE(0.1f, 0.3f, 0.7f);
+    CAPTURE(sigma);
+
+    SECTION("impulse") {
+        std::vector<float> data(7 * 7);
+        data[7 * 3 + 3] = 1.0f;
+        FastGaussian2D(data.data(), 7, 7, sigma);
+        CHECK(std::all_of(data.begin(), data.end(),
+                          [](float v) { return v >= 0.0f; }));
+        CHECK_THAT(std::accumulate(data.begin(), data.end(), 0.0),
+                   WithinAbs(1.0, 1e-5));
+    }
+
+    SECTION("constant") {
+        std::vector<float> data(7 * 5, 3.0f);
+        FastGaussian2D(data.data(), 7, 5, sigma);
+        for (float v : data) {
+            CHECK_THAT(v, WithinAbs(3.0f, 1e-5));
+        }
+    }
+}
+
 TEST_CASE("FastPoisson-mean-variance") {
     using Catch::Matchers::WithinAbs;
     rnd::mt19937 rng(12345);
@@ -335,6 +400,25 @@ TEST_CASE("ReadOut-clamp") {
 
     CHECK(std::all_of(out.begin(), out.end(),
                       [](std::uint16_t v) { return v == 65535; }));
+}
+
+TEST_CASE("GaussianSigmaForDefocus") {
+    using Catch::Matchers::WithinRel;
+    const float na = GENERATE(0.3f, 0.75f, 1.4f);
+    CAPTURE(na);
+
+    SECTION("in focus") {
+        CHECK_THAT(GaussianSigmaForDefocus(0.0f, na, 1.33f, 0.52f),
+                   WithinRel(0.21f * 0.52f / na, 1e-5f));
+    }
+
+    SECTION("large defocus") {
+        for (const float dz : {-200.0f, 200.0f}) {
+            CAPTURE(dz);
+            CHECK_THAT(GaussianSigmaForDefocus(dz, na, 1.33f, 0.52f),
+                       WithinRel(0.5f * na * std::fabs(dz) / 1.33f, 1e-3f));
+        }
+    }
 }
 
 TEST_CASE("Specimen-Draw-deterministic") {

@@ -248,10 +248,20 @@ void FastGaussian2DSIMD(float *data, std::size_t width, std::size_t height,
 // Entry point
 void FastGaussian2D(float *data, std::size_t width, std::size_t height,
                     float sigma) {
+    if (!(sigma > 0.0f))
+        return;
+    // Recursive coefficients (Eq 11b) are valid only for sigma >= 0.5 and
+    // inaccurate near that bound; direct convolution is cheap for such small
+    // kernels.
+    if (sigma < 1.0f) {
+        gaussian_internal::DirectGaussian2D(data, width, height, sigma);
+        return;
+    }
 #ifdef USE_HIGHWAY_SIMD
-    return gaussian_internal::FastGaussian2DSIMD(data, width, height, sigma);
-#endif
+    gaussian_internal::FastGaussian2DSIMD(data, width, height, sigma);
+#else
     gaussian_internal::FastGaussian2DScalar(data, width, height, sigma);
+#endif
 }
 
 #endif
