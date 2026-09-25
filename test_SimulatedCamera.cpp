@@ -1,3 +1,4 @@
+#include "Detector.h"
 #include "Gaussian2DFilter.h"
 #include "Specimen.h"
 
@@ -6,7 +7,10 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
 #include <numeric>
+#include <vector>
 
 TEST_CASE("FastGaussian2D-q") {
     using Catch::Matchers::WithinAbs;
@@ -278,6 +282,83 @@ TEST_CASE("FastPoisson-tiny-lambda") {
 
     double sample = FastPoisson(0.01, rng, uniformDist);
     CHECK(sample >= 0.0);
+}
+
+namespace {
+
+double Mean(const std::vector<std::uint16_t> &v) {
+    return std::accumulate(v.begin(), v.end(), 0.0) / double(v.size());
+}
+
+double Variance(const std::vector<std::uint16_t> &v, double mean) {
+    return std::transform_reduce(
+               v.begin(), v.end(), 0.0, std::plus<>{},
+               [&](double s) { return (s - mean) * (s - mean); }) /
+           double(v.size());
+}
+
+} // namespace
+
+TEST_CASE("ReadOut-dark") {
+    using Catch::Matchers::WithinAbs;
+    rnd::mt19937 rng(12345);
+    constexpr std::size_t nPixels = 100000;
+    std::vector<std::uint16_t> out(nPixels);
+    ReadOut(nullptr, out.data(), nPixels, 50.0f, 100.0f, rng);
+
+    // Expected values account for clamping at 0 (2 sigma below the offset).
+    const double mean = Mean(out);
+    CHECK_THAT(mean, WithinAbs(100.4, 0.5));
+    CHECK_THAT(std::sqrt(Variance(out, mean)), WithinAbs(49.0, 0.5));
+}
+
+TEST_CASE("ReadOut-signal") {
+    using Catch::Matchers::WithinAbs;
+    rnd::mt19937 rng(12345);
+    constexpr std::size_t nPixels = 100000;
+    const std::vector<float> signal(nPixels, 1000.0f);
+    std::vector<std::uint16_t> out(nPixels);
+    ReadOut(signal.data(), out.data(), nPixels, 0.0f, 0.0f, rng);
+
+    const double mean = Mean(out);
+    CHECK_THAT(mean, WithinAbs(1000.0, 1.0));
+    CHECK_THAT(Variance(out, mean), WithinAbs(1000.0, 30.0));
+}
+
+TEST_CASE("ReadOut-clamp") {
+    rnd::mt19937 rng(12345);
+    constexpr std::size_t nPixels = 100000;
+    const std::vector<float> signal(nPixels, 1e6f);
+    std::vector<std::uint16_t> out(nPixels);
+    ReadOut(signal.data(), out.data(), nPixels, 0.0f, 0.0f, rng);
+
+    CHECK(std::all_of(out.begin(), out.end(),
+                      [](std::uint16_t v) { return v == 65535; }));
+}
+
+TEST_CASE("Specimen-Draw-deterministic") {
+    const std::size_t width = 64, height = 48;
+    std::vector<float> a(width * height, -1.0f);
+    std::vector<float> b(width * height, 42.0f);
+
+    SECTION("filaments") {
+        FilamentsSpecimen specimen;
+        specimen.Draw(a.data(), 0.0, 0.0, 5.0, width, height, 10.0, 1.4,
+                      100.0);
+        specimen.Draw(b.data(), 0.0, 0.0, 5.0, width, height, 10.0, 1.4,
+                      100.0);
+    }
+
+    SECTION("nuclei") {
+        NucleiSpecimen specimen;
+        specimen.Draw(a.data(), 0.0, 0.0, 5.0, width, height, 10.0, 1.4,
+                      100.0);
+        specimen.Draw(b.data(), 0.0, 0.0, 5.0, width, height, 10.0, 1.4,
+                      100.0);
+    }
+
+    CHECK(a == b);
+    CHECK(std::any_of(a.begin(), a.end(), [](float v) { return v > 0.0f; }));
 }
 
 #ifdef USE_HIGHWAY_SIMD
