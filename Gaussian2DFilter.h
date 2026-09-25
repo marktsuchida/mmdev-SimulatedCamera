@@ -1,9 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cmath>
 #include <cstddef>
+#include <vector>
 
 void FastGaussian2D(float *data, std::size_t width, std::size_t height,
                     float sigma);
@@ -11,7 +13,7 @@ void FastGaussian2D(float *data, std::size_t width, std::size_t height,
 namespace gaussian_internal {
 
 // Eq 11b
-template <typename F> inline float q(F sigma) {
+template <typename F> inline F q(F sigma) {
     assert(sigma > F(0.0));
 
     // Note: This function, as given in the paper, is not continuous at sigma =
@@ -58,24 +60,20 @@ template <typename F> inline F B(std::array<F, 3> bp) {
 template <typename F, std::size_t Stride = 0>
 inline void ForwardFilter(F *data, std::size_t size, F B, std::array<F, 3> bp,
                           std::size_t stride = Stride) {
-    const auto s = Stride > 0 ? Stride : stride;
-    F *const pend = data + size * s;
-    F *p = data;
     if (size < 1)
         return;
-    F cur = *p;
+    const auto s = Stride > 0 ? Stride : stride;
+    F cur = data[0];
     // Replicate the 3 pixels outside the border.
     F prev1 = cur;
     F prev2 = cur;
     F prev3 = cur;
-    p += s;
-    for (; p < pend; p += s) {
+    for (std::size_t k = 1; k < size; ++k) {
         prev3 = prev2;
         prev2 = prev1;
         prev1 = cur;
-        cur = *p;
-        cur = B * cur + bp[0] * prev1 + bp[1] * prev2 + bp[2] * prev3;
-        *p = cur;
+        cur = B * data[k * s] + bp[0] * prev1 + bp[1] * prev2 + bp[2] * prev3;
+        data[k * s] = cur;
     }
 }
 
@@ -83,24 +81,20 @@ inline void ForwardFilter(F *data, std::size_t size, F B, std::array<F, 3> bp,
 template <typename F, std::size_t Stride = 0>
 inline void BackwardFilter(F *data, std::size_t size, F B, std::array<F, 3> bp,
                            std::size_t stride = Stride) {
-    const auto s = Stride > 0 ? Stride : stride;
-    F *const prend = data - 1;
-    F *p = data + (size - 1) * s;
     if (size < 1)
         return;
-    F cur = *p;
+    const auto s = Stride > 0 ? Stride : stride;
+    F cur = data[(size - 1) * s];
     // Replicate the 3 pixels outside of the border.
     F next1 = cur;
     F next2 = cur;
     F next3 = cur;
-    p -= s;
-    for (; p > prend; p -= s) {
+    for (std::size_t k = size - 1; k-- > 0;) {
         next3 = next2;
         next2 = next1;
         next1 = cur;
-        cur = *p;
-        cur = B * cur + bp[0] * next1 + bp[1] * next2 + bp[2] * next3;
-        *p = cur;
+        cur = B * data[k * s] + bp[0] * next1 + bp[1] * next2 + bp[2] * next3;
+        data[k * s] = cur;
     }
 }
 
@@ -121,6 +115,46 @@ void FastGaussian2DScalar(F *data, std::size_t width, std::size_t height,
         ForwardFilter<F>(col, height, theB, bp, width);
         BackwardFilter<F>(col, height, theB, bp, width);
     }
+}
+
+// Separable convolution with a sampled Gaussian kernel truncated at 3 sigma,
+// with replicated boundaries.
+template <typename F>
+void DirectGaussian2D(F *data, std::size_t width, std::size_t height,
+                      F sigma) {
+    if (width == 0 || height == 0)
+        return;
+    const auto radius = std::max<std::ptrdiff_t>(
+        1, static_cast<std::ptrdiff_t>(std::ceil(F(3) * sigma)));
+    std::vector<F> kernel(static_cast<std::size_t>(2 * radius + 1));
+    F sum = 0;
+    for (std::ptrdiff_t k = -radius; k <= radius; ++k) {
+        const F w = std::exp(-F(k * k) / (F(2) * sigma * sigma));
+        kernel[static_cast<std::size_t>(k + radius)] = w;
+        sum += w;
+    }
+    for (auto &w : kernel)
+        w /= sum;
+
+    std::vector<F> buf(std::max(width, height));
+    const auto convolve = [&](std::size_t size, std::size_t stride, F *line) {
+        for (std::size_t k = 0; k < size; ++k)
+            buf[k] = line[k * stride];
+        const auto last = static_cast<std::ptrdiff_t>(size) - 1;
+        for (std::ptrdiff_t k = 0; k <= last; ++k) {
+            F acc = 0;
+            for (std::ptrdiff_t m = -radius; m <= radius; ++m) {
+                const auto idx = std::clamp<std::ptrdiff_t>(k + m, 0, last);
+                acc += kernel[static_cast<std::size_t>(m + radius)] *
+                       buf[static_cast<std::size_t>(idx)];
+            }
+            line[static_cast<std::size_t>(k) * stride] = acc;
+        }
+    };
+    for (std::size_t j = 0; j < height; ++j)
+        convolve(width, 1, data + j * width);
+    for (std::size_t i = 0; i < width; ++i)
+        convolve(height, width, data + i);
 }
 
 // For unit test access
