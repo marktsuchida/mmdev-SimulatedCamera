@@ -20,11 +20,15 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
     // readout). X and Y use the same step size.
     static constexpr double umPerStep_ = 0.1;
     std::string name_;
-    ProcModel model_;
+    SimHub *hub_ = nullptr;
     DelayedNotifier delayer_;
 
     std::mutex notificationMut_;
     bool notificationsEnabled_ = false;
+
+    // Declared last so that it is destroyed first: its slew thread's update
+    // function uses the members above.
+    ProcModel model_;
 
   public:
     explicit SimXY(std::string name)
@@ -50,11 +54,18 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
                                                  umPerStep_ * iy);
               });
           }) {
-        // Adjust default for stage-like velocity (100 um/s).
-        model_.ReciprocalSlewRateSeconds(umPerStep_ / 100.0);
+        if constexpr (ProcModel::isAsync) {
+            // Adjust default for stage-like velocity (100 um/s).
+            model_.ReciprocalSlewRateSeconds(umPerStep_ / 100.0);
+        }
     }
 
     int Initialize() final {
+        hub_ = static_cast<SimHub *>(this->GetParentHub());
+        if (!hub_) {
+            return DEVICE_COMM_HUB_MISSING;
+        }
+
         int ret = this->CreateFloatProperty("UmPerStep", umPerStep_, true);
         assert(ret == DEVICE_OK);
 
@@ -84,7 +95,7 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
         ret = this->AddAllowedValue("NotificationsEnabled", "Yes");
         assert(ret == DEVICE_OK);
 
-        if (ProcModel::isAsync) {
+        if constexpr (ProcModel::isAsync) {
             ret = this->CreateFloatProperty(
                 "SlewTimePerStep_s", model_.ReciprocalSlewRateSeconds(), false,
                 new MM::ActionLambda(
@@ -144,8 +155,7 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
         }
         (void)ret;
 
-        auto *hub = static_cast<SimHub *>(this->GetParentHub());
-        hub->SetGetXYUmFunction([this] {
+        hub_->SetGetXYUmFunction([this] {
             // We do _not_ call GetPositionUm() here, because those um coords
             // may be flipped wrt the specimen due to TransposeMirrorX/Y.
             // Instead, we use a pure scaling of the steps here.
@@ -162,8 +172,10 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
     }
 
     int Shutdown() final {
-        auto *hub = static_cast<SimHub *>(this->GetParentHub());
-        hub->SetGetXYUmFunction([] { return std::make_pair(0.0, 0.0); });
+        if (hub_) {
+            hub_->SetGetXYUmFunction([] { return std::make_pair(0.0, 0.0); });
+            hub_ = nullptr;
+        }
         model_.Halt();
         delayer_.CancelAll();
         return DEVICE_OK;

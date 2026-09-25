@@ -1,5 +1,3 @@
-// Mock device adapter for testing of device change notifications
-//
 // Copyright (C) 2024 Board of Regents of the University of Wisconsin System
 //
 // This file is distributed under the BSD license. License text is included

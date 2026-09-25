@@ -3,12 +3,17 @@
 #include "DeviceBase.h"
 
 #include <functional>
+#include <mutex>
 #include <string>
 #include <utility>
 
 class SimHub : public HubBase<SimHub> {
     std::string name_;
 
+    // Held while invoking the functions, so that a peripheral's Shutdown()
+    // (which replaces its function) cannot return while the camera is still
+    // calling into it.
+    mutable std::mutex mut_;
     std::function<double()> getFocusUmFunc_ = [] { return 0.0; };
     std::function<std::pair<double, double>()> getXYUmFunc_ = [] {
         return std::make_pair(0.0, 0.0);
@@ -29,24 +34,48 @@ class SimHub : public HubBase<SimHub> {
     int DetectInstalledDevices() final;
 
     template <typename F> void SetGetFocusUmFunction(F f) {
-        getFocusUmFunc_ = f;
+        std::lock_guard<std::mutex> lock(mut_);
+        getFocusUmFunc_ = std::move(f);
     }
 
-    template <typename F> void SetGetXYUmFunction(F f) { getXYUmFunc_ = f; }
+    template <typename F> void SetGetXYUmFunction(F f) {
+        std::lock_guard<std::mutex> lock(mut_);
+        getXYUmFunc_ = std::move(f);
+    }
 
     template <typename F> void SetGetMagnificationFunction(F f) {
-        getMagnificationFunc_ = f;
+        std::lock_guard<std::mutex> lock(mut_);
+        getMagnificationFunc_ = std::move(f);
     }
 
-    template <typename F> void SetGetNAFunction(F f) { getNAFunc_ = f; }
+    template <typename F> void SetGetNAFunction(F f) {
+        std::lock_guard<std::mutex> lock(mut_);
+        getNAFunc_ = std::move(f);
+    }
 
     template <typename F> void SetGetShutterOpenFunction(F f) {
-        getShutterOpenFunc_ = f;
+        std::lock_guard<std::mutex> lock(mut_);
+        getShutterOpenFunc_ = std::move(f);
     }
 
-    double GetFocusUm() { return getFocusUmFunc_(); }
-    std::pair<double, double> GetXYUm() { return getXYUmFunc_(); }
-    double GetMagnification() { return getMagnificationFunc_(); }
-    double GetNA() { return getNAFunc_(); }
-    bool IsShutterOpen() { return getShutterOpenFunc_(); }
+    double GetFocusUm() {
+        std::lock_guard<std::mutex> lock(mut_);
+        return getFocusUmFunc_();
+    }
+    std::pair<double, double> GetXYUm() {
+        std::lock_guard<std::mutex> lock(mut_);
+        return getXYUmFunc_();
+    }
+    double GetMagnification() {
+        std::lock_guard<std::mutex> lock(mut_);
+        return getMagnificationFunc_();
+    }
+    double GetNA() {
+        std::lock_guard<std::mutex> lock(mut_);
+        return getNAFunc_();
+    }
+    bool IsShutterOpen() {
+        std::lock_guard<std::mutex> lock(mut_);
+        return getShutterOpenFunc_();
+    }
 };

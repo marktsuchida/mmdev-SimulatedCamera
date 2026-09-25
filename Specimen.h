@@ -43,8 +43,8 @@ void RenderSpecimenImage(float *signal, double x_um, double y_um, double z_um,
 
     BLPath origin_marker;
     origin_marker.moveTo(0.0, 0.0);
-    origin_marker.lineTo(50.0, 50.0);
-    origin_marker.addCircle(BLCircle(0.0, 0.0, 50.0));
+    origin_marker.lineTo(12.5, 12.5);
+    origin_marker.addCircle(BLCircle(0.0, 0.0, 12.5));
     ctx.strokePath(origin_marker, BLRgba32(0xaaaaaaaa));
 
     drawContent(ctx);
