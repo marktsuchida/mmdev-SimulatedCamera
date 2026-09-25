@@ -10,7 +10,6 @@
 
 MODULE_API void InitializeModuleData() {
     RegisterDevice("SimHub", MM::HubDevice, "Hub for simulated camera");
-    RegisterDevice("SimShutter", MM::ShutterDevice, "Simulated shutter");
 }
 
 MODULE_API MM::Device *CreateDevice(const char *name) {

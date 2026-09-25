@@ -6,12 +6,15 @@
 
 class SimShutter : public CShutterBase<SimShutter> {
     std::string name_;
+    bool initialized_ = false;
 
     // Shutter state
     bool isOpen_ = false;
 
   public:
     explicit SimShutter(std::string name) : name_(std::move(name)) {}
+
+    ~SimShutter() { Shutdown(); }
 
     bool Busy() final {
         // TODO: Could introduce a small delay here
@@ -27,16 +30,18 @@ class SimShutter : public CShutterBase<SimShutter> {
     int Initialize() final {
         isOpen_ = false;
         auto *hub = static_cast<SimHub *>(GetParentHub());
-        if (hub)
-            hub->SetGetShutterOpenFunction([this] { return isOpen_; });
+        hub->SetGetShutterOpenFunction([this] { return isOpen_; });
+        initialized_ = true;
         return DEVICE_OK;
     }
 
     int Shutdown() final {
         isOpen_ = false;
-        auto *hub = static_cast<SimHub *>(GetParentHub());
-        if (hub)
+        if (initialized_) {
+            auto *hub = static_cast<SimHub *>(GetParentHub());
             hub->SetGetShutterOpenFunction([] { return true; });
+            initialized_ = false;
+        }
         return DEVICE_OK;
     }
 
