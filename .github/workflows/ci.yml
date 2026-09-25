@@ -46,6 +46,7 @@ jobs:
             upload: true
             platform: linux-x86_64
             dal_name: mmgr_dal_SimulatedCamera.so.0
+            strip: strip --strip-unneeded
           - name: macos-arm64
             runner: macos-15
             cc: ccache clang
@@ -53,6 +54,7 @@ jobs:
             upload: true
             platform: macos-arm64
             dal_name: mmgr_dal_SimulatedCamera
+            strip: strip -x
           - name: macos-x86_64
             runner: macos-15-intel
             cc: ccache clang
@@ -60,6 +62,7 @@ jobs:
             upload: true
             platform: macos-x86_64
             dal_name: mmgr_dal_SimulatedCamera
+            strip: strip -x
     env:
       CC: ${{ matrix.cc }}
       CXX: ${{ matrix.cxx }}
@@ -164,6 +167,10 @@ jobs:
         run: |
           mkdir dist
           cp builddir/SimulatedCamera.mmdev "dist/${{ matrix.dal_name }}"
+
+      - name: Strip artifact
+        if: matrix.upload && matrix.strip
+        run: ${{ matrix.strip }} "dist/${{ matrix.dal_name }}"
 
       - uses: actions/upload-artifact@v7
         if: matrix.upload
