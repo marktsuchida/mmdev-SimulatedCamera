@@ -131,7 +131,8 @@ template <typename T> class SimulatedSpecimen {
         }
 
         // Defocus
-        const auto sigmaUm = GaussianSigmaForDefocus(float(z_um), float(na), 1.33f);
+        const auto sigmaUm =
+            GaussianSigmaForDefocus(float(z_um), float(na), 1.33f);
         const auto sigmaPixels = sigmaUm / float(um_per_px);
         FastGaussian2D(fImage.data(), width, height, sigmaPixels);
 

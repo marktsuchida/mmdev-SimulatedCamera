@@ -31,22 +31,16 @@ class SimHub : public HubBase<SimHub> {
         getFocusUmFunc_ = f;
     }
 
-    template <typename F> void SetGetXYUmFunction(F f) {
-        getXYUmFunc_ = f;
-    }
+    template <typename F> void SetGetXYUmFunction(F f) { getXYUmFunc_ = f; }
 
     template <typename F> void SetGetMagnificationFunction(F f) {
         getMagnificationFunc_ = f;
     }
 
-    template <typename F> void SetGetNAFunction(F f) {
-        getNAFunc_ = f;
-    }
+    template <typename F> void SetGetNAFunction(F f) { getNAFunc_ = f; }
 
     double GetFocusUm() { return getFocusUmFunc_(); }
-    std::pair<double, double> GetXYUm() {
-        return getXYUmFunc_();
-    }
+    std::pair<double, double> GetXYUm() { return getXYUmFunc_(); }
     double GetMagnification() { return getMagnificationFunc_(); }
     double GetNA() { return getNAFunc_(); }
 };
