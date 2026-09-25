@@ -78,19 +78,19 @@ class SimCam : public CCameraBase<SimCam> {
         ret = AddAllowedValue(MM::g_Keyword_Binning, "1");
         assert(ret == DEVICE_OK);
 
-        ret = CreateProperty(
-            "Mode", mode_.c_str(), MM::String, false,
-            new MM::ActionLambda(
-                [this](MM::PropertyBase *pProp, MM::ActionType eAct) {
-                    if (eAct == MM::BeforeGet) {
-                        pProp->Set(mode_.c_str());
-                    } else if (eAct == MM::AfterSet) {
-                        std::string value;
-                        pProp->Get(value);
-                        mode_ = value;
-                    }
-                    return DEVICE_OK;
-                }));
+        ret =
+            CreateProperty("Mode", mode_.c_str(), MM::String, false,
+                           new MM::ActionLambda([this](MM::PropertyBase *pProp,
+                                                       MM::ActionType eAct) {
+                               if (eAct == MM::BeforeGet) {
+                                   pProp->Set(mode_.c_str());
+                               } else if (eAct == MM::AfterSet) {
+                                   std::string value;
+                                   pProp->Get(value);
+                                   mode_ = value;
+                               }
+                               return DEVICE_OK;
+                           }));
         assert(ret == DEVICE_OK);
         ret = AddAllowedValue("Mode", modeFilaments_);
         assert(ret == DEVICE_OK);
@@ -141,12 +141,10 @@ class SimCam : public CCameraBase<SimCam> {
                                  (magnification * magnification);
         if (mode_ == modeNuclei_) {
             nucleiSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
-                                 roiHeight_, umPerPx, na,
-                                 intensity);
+                                 roiHeight_, umPerPx, na, intensity);
         } else {
             filamentsSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
-                                    roiHeight_, umPerPx, na,
-                                    intensity);
+                                    roiHeight_, umPerPx, na, intensity);
         }
 
         std::chrono::duration<double, std::milli> exposure(GetExposure());

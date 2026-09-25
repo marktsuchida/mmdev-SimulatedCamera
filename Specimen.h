@@ -104,7 +104,8 @@ void RenderSpecimenImage(T *buffer, double x_um, double y_um, double z_um,
     }
 
     // Defocus
-    const auto sigmaUm = GaussianSigmaForDefocus(float(z_um), float(na), 1.33f);
+    const auto sigmaUm =
+        GaussianSigmaForDefocus(float(z_um), float(na), 1.33f);
     const auto sigmaPixels = sigmaUm / float(um_per_px);
     FastGaussian2D(fImage.data(), width, height, sigmaPixels);
 
@@ -123,14 +124,14 @@ void RenderSpecimenImage(T *buffer, double x_um, double y_um, double z_um,
     // and dark offset (TODO adjustable?)
     auto noiseDistrib = rnd::normal_distribution<float>(0.0, 50.0);
     const float darkOffset = 100.0f;
-    std::transform(
-        fImage.begin(), fImage.end(), fImage.begin(),
-        [&](float p) { return p + noiseDistrib(rng) + darkOffset; });
+    std::transform(fImage.begin(), fImage.end(), fImage.begin(), [&](float p) {
+        return p + noiseDistrib(rng) + darkOffset;
+    });
 
     // Clamp to pixel type range
     std::transform(fImage.begin(), fImage.end(), buffer, [](float v) {
-        return static_cast<T>(std::clamp(std::round(v), 0.0f,
-                                         float(std::numeric_limits<T>::max())));
+        return static_cast<T>(std::clamp(
+            std::round(v), 0.0f, float(std::numeric_limits<T>::max())));
     });
 }
 
@@ -164,16 +165,15 @@ template <typename T> class FilamentsSpecimen {
               std::size_t width, std::size_t height, double um_per_px,
               double na, double intensity) {
         const auto &filaments = filaments_;
-        RenderSpecimenImage(
-            buffer, x_um, y_um, z_um, width, height, um_per_px, na, intensity,
-            rng_, [&](BLContext &ctx) {
-                for (const Filament &f : filaments) {
-                    BLPath path;
-                    path.moveTo(f.x0, f.y0);
-                    path.lineTo(f.x1, f.y1);
-                    ctx.strokePath(path, BLRgba32(0xffffffff));
-                }
-            });
+        RenderSpecimenImage(buffer, x_um, y_um, z_um, width, height, um_per_px,
+                            na, intensity, rng_, [&](BLContext &ctx) {
+                                for (const Filament &f : filaments) {
+                                    BLPath path;
+                                    path.moveTo(f.x0, f.y0);
+                                    path.lineTo(f.x1, f.y1);
+                                    ctx.strokePath(path, BLRgba32(0xffffffff));
+                                }
+                            });
     }
 };
 
@@ -204,7 +204,7 @@ template <typename T> class NucleiSpecimen {
             nucleus.radius = nucleusRadiusDistrib(rng_);
 
             rnd::normal_distribution<> offsetDistrib(0.0,
-                                                      nucleus.radius / 3.0);
+                                                     nucleus.radius / 3.0);
             const int nPuncta = punctumCountDistrib(rng_);
             for (int p = 0; p < nPuncta; ++p) {
                 nucleus.puncta.push_back({nucleus.x + offsetDistrib(rng_),
@@ -225,12 +225,12 @@ template <typename T> class NucleiSpecimen {
             rng_, [&](BLContext &ctx) {
                 for (const Nucleus &n : nuclei) {
                     ctx.fillCircle(BLCircle(n.x, n.y, n.radius),
-                                  BLRgba32(40, 40, 40));
+                                   BLRgba32(40, 40, 40));
                     for (const Punctum &p : n.puncta) {
                         const auto v = static_cast<std::uint32_t>(
                             std::clamp(255.0 * p.brightness, 0.0, 255.0));
                         ctx.fillCircle(BLCircle(p.x, p.y, p.radius),
-                                      BLRgba32(v, v, v));
+                                       BLRgba32(v, v, v));
                     }
                 }
             });
