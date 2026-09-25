@@ -1,0 +1,173 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: j178/prek-action@v3.0.0
+
+  build:
+    name: build (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-clang-cl
+            runner: windows-latest
+            # Meson drops a bare "ccache" prefix for clang-cl but keeps
+            # "ccache.exe" as part of the compiler command.
+            cc: ccache.exe clang-cl
+            cxx: ccache.exe clang-cl
+            upload: true
+            platform: windows-x86_64
+            dal_name: mmgr_dal_SimulatedCamera.dll
+          - name: windows-msvc
+            runner: windows-latest
+            cc: ccache cl
+            cxx: ccache cl
+            upload: false
+          - name: linux-gcc
+            runner: ubuntu-22.04
+            cc: ccache gcc
+            cxx: ccache g++
+            ldflags: -static-libstdc++ -static-libgcc
+            upload: true
+            platform: linux-x86_64
+            dal_name: mmgr_dal_SimulatedCamera.so.0
+          - name: macos-arm64
+            runner: macos-15
+            cc: ccache clang
+            cxx: ccache clang++
+            upload: true
+            platform: macos-arm64
+            dal_name: mmgr_dal_SimulatedCamera
+          - name: macos-x86_64
+            runner: macos-15-intel
+            cc: ccache clang
+            cxx: ccache clang++
+            upload: true
+            platform: macos-x86_64
+            dal_name: mmgr_dal_SimulatedCamera
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+      BOOST_VERSION: 1.92.0
+      BOOST_VERSION_UNDERSCORED: 1_92_0
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      # Strawberry Perl's bin directories contain tools (including ccache.exe)
+      # that shadow the ones we want.
+      - name: Remove Strawberry Perl from PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $path = ($env:PATH -split ';' | Where-Object { $_ -notlike 'C:\Strawberry\*' }) -join ';'
+          "PATH=$path" >> $env:GITHUB_ENV
+
+      # Git Bash puts Git's usr\bin (which has a GNU link.exe) at the front of
+      # PATH, shadowing MSVC's link.exe. Just recipes run under Git's sh, too.
+      - name: Remove Git's link.exe (Windows)
+        if: runner.os == 'Windows'
+        run: rm /usr/bin/link.exe
+
+      - uses: astral-sh/setup-uv@v10.2.0
+
+      - name: Install Meson and Ninja
+        run: |
+          uv tool install meson
+          uv tool install ninja
+
+      - uses: extractions/setup-just@v4
+
+      - name: Set up MSVC dev environment (Windows)
+        if: runner.os == 'Windows'
+        uses: compnerd/gha-setup-vsdevenv@452f99effa381b81c025ccfbdccaca509bff1b29 # v7
+
+      # We only use Boost headers, but Meson's Boost detection fails unless at
+      # least one compiled Boost library is present. So we also install (on
+      # Windows, build) Boost.Random, which is not linked.
+      - name: Install Boost (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libboost-random-dev
+
+      - name: Install Boost (macOS)
+        if: runner.os == 'macOS'
+        run: brew install boost
+
+      - name: Cache Boost (Windows)
+        if: runner.os == 'Windows'
+        id: cache-boost
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/boost
+          key: boost-random-${{ env.BOOST_VERSION }}-windows
+
+      - name: Build Boost (Windows)
+        if: runner.os == 'Windows' && steps.cache-boost.outputs.cache-hit != 'true'
+        shell: pwsh
+        working-directory: ${{ runner.temp }}
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          Remove-Item Env:CC, Env:CXX
+          curl.exe -fsSL -o boost.tar.gz "https://archives.boost.io/release/$env:BOOST_VERSION/source/boost_$env:BOOST_VERSION_UNDERSCORED.tar.gz"
+          tar -xzf boost.tar.gz
+          cd "boost_$env:BOOST_VERSION_UNDERSCORED"
+          .\bootstrap.bat
+          .\b2 -j"$env:NUMBER_OF_PROCESSORS" --with-random --layout=system `
+            --prefix="$env:RUNNER_TEMP\boost" `
+            link=static runtime-link=shared variant=release address-model=64 `
+            install
+
+      - name: Set BOOST_ROOT (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '"BOOST_ROOT=$env:RUNNER_TEMP\boost" >> $env:GITHUB_ENV'
+
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ matrix.name }}
+
+      - name: Enable ccache depend mode (Windows)
+        if: startsWith(matrix.runner, 'windows-')
+        run: ccache --set-config=depend_mode=true
+
+      - name: Configure
+        env:
+          LDFLAGS: ${{ matrix.ldflags }}
+        run: just configure-for-release -Dbenchmarks=enabled
+
+      - name: Build
+        run: just build
+
+      - name: Test
+        run: meson test -C builddir --print-errorlogs
+
+      - name: Stage artifact
+        if: matrix.upload
+        run: |
+          mkdir dist
+          cp builddir/SimulatedCamera.mmdev "dist/${{ matrix.dal_name }}"
+
+      - uses: actions/upload-artifact@v7
+        if: matrix.upload
+        with:
+          name: mmdev-SimulatedCamera-${{ matrix.platform }}
+          path: dist/
+          if-no-files-found: error
