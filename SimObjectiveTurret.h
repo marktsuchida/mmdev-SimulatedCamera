@@ -60,7 +60,7 @@ class SimObjectiveTurret : public CStateDeviceBase<SimObjectiveTurret> {
         // -----
         CPropertyAction *pAct =
             new CPropertyAction(this, &SimObjectiveTurret::OnState);
-        ret = CreateIntegerProperty(MM::g_Keyword_State, 0, false, pAct);
+        ret = CreateIntegerProperty(MM::g_Keyword_State, 1, false, pAct);
         if (ret != DEVICE_OK)
             return ret;
 
@@ -122,5 +122,5 @@ class SimObjectiveTurret : public CStateDeviceBase<SimObjectiveTurret> {
     std::string name_;
     SimHub *hub_ = nullptr;
     // Read by the camera thread via the hub
-    std::atomic<long> state_{0};
+    std::atomic<long> state_{1};
 };
