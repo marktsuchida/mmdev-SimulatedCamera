@@ -107,15 +107,13 @@ class SimCam : public CCameraBase<SimCam> {
         // FOV center is -stagePosition (needed for tiles to align).
         const double fovCenterX = xy.first;
         const double fovCenterY = -xy.second;
-        const double x =
-            fovCenterX - umPerPx * (double(roiX_) - double(sensorWidth_) / 2.0);
-        const double y =
-            fovCenterY -
-            umPerPx * (double(roiY_) - double(sensorHeight_) / 2.0);
+        const double x = fovCenterX - umPerPx * (double(roiX_) -
+                                                 double(sensorWidth_) / 2.0);
+        const double y = fovCenterY - umPerPx * (double(roiY_) -
+                                                 double(sensorHeight_) / 2.0);
         // Derive intensity using epi-illumination formula
-        const double intensity = 2800.0 * GetExposure() *
-                                 GetBinning() * GetBinning() *
-                                 (na * na * na * na) /
+        const double intensity = 2800.0 * GetExposure() * GetBinning() *
+                                 GetBinning() * (na * na * na * na) /
                                  (magnification * magnification);
         specimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_, roiHeight_,
                        umPerPx, na, intensity);
