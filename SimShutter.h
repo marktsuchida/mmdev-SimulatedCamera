@@ -10,7 +10,7 @@
 
 class SimShutter : public CShutterBase<SimShutter> {
     std::string name_;
-    bool initialized_ = false;
+    SimHub *hub_ = nullptr;
 
     // Shutter state
     std::atomic<bool> isOpen_{false};
@@ -32,6 +32,11 @@ class SimShutter : public CShutterBase<SimShutter> {
     int Fire(double /*deltaT*/) final { return DEVICE_UNSUPPORTED_COMMAND; }
 
     int Initialize() final {
+        hub_ = static_cast<SimHub *>(GetParentHub());
+        if (!hub_) {
+            return DEVICE_COMM_HUB_MISSING;
+        }
+
         isOpen_ = false;
 
         int ret = CreateIntegerProperty(
@@ -56,18 +61,15 @@ class SimShutter : public CShutterBase<SimShutter> {
         if (ret != DEVICE_OK)
             return ret;
 
-        auto *hub = static_cast<SimHub *>(GetParentHub());
-        hub->SetGetShutterOpenFunction([this] { return isOpen_.load(); });
-        initialized_ = true;
+        hub_->SetGetShutterOpenFunction([this] { return isOpen_.load(); });
         return DEVICE_OK;
     }
 
     int Shutdown() final {
         isOpen_ = false;
-        if (initialized_) {
-            auto *hub = static_cast<SimHub *>(GetParentHub());
-            hub->SetGetShutterOpenFunction([] { return true; });
-            initialized_ = false;
+        if (hub_) {
+            hub_->SetGetShutterOpenFunction([] { return true; });
+            hub_ = nullptr;
         }
         return DEVICE_OK;
     }

@@ -4,6 +4,7 @@
 #include "SimHub.h"
 
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdio>
 #include <string>
@@ -34,6 +35,11 @@ class SimObjectiveTurret : public CStateDeviceBase<SimObjectiveTurret> {
     ~SimObjectiveTurret() { Shutdown(); }
 
     int Initialize() final {
+        hub_ = static_cast<SimHub *>(GetParentHub());
+        if (!hub_) {
+            return DEVICE_COMM_HUB_MISSING;
+        }
+
         int ret{};
 
         // create default positions and labels
@@ -65,24 +71,22 @@ class SimObjectiveTurret : public CStateDeviceBase<SimObjectiveTurret> {
         if (ret != DEVICE_OK)
             return ret;
 
-        auto *hub = static_cast<SimHub *>(this->GetParentHub());
-        hub->SetGetMagnificationFunction([this] {
-            return objectives_[static_cast<std::size_t>(state_)].magnification;
+        hub_->SetGetMagnificationFunction([this] {
+            return objectives_[static_cast<std::size_t>(state_.load())]
+                .magnification;
         });
-        hub->SetGetNAFunction([this] {
-            return objectives_[static_cast<std::size_t>(state_)].na;
+        hub_->SetGetNAFunction([this] {
+            return objectives_[static_cast<std::size_t>(state_.load())].na;
         });
 
-        initialized_ = true;
         return DEVICE_OK;
     }
 
     int Shutdown() final {
-        if (initialized_) {
-            auto *hub = static_cast<SimHub *>(this->GetParentHub());
-            hub->SetGetMagnificationFunction([] { return 1.0; });
-            hub->SetGetNAFunction([] { return 1.0; });
-            initialized_ = false;
+        if (hub_) {
+            hub_->SetGetMagnificationFunction([] { return 1.0; });
+            hub_->SetGetNAFunction([] { return 1.0; });
+            hub_ = nullptr;
         }
         return DEVICE_OK;
     }
@@ -94,12 +98,12 @@ class SimObjectiveTurret : public CStateDeviceBase<SimObjectiveTurret> {
     bool Busy() { return false; };
 
     unsigned long GetNumberOfPositions() const {
-        return static_cast<long>(objectives_.size());
+        return static_cast<unsigned long>(objectives_.size());
     }
 
     int OnState(MM::PropertyBase *pProp, MM::ActionType eAct) {
         if (eAct == MM::BeforeGet) {
-            pProp->Set(state_);
+            pProp->Set(state_.load());
         } else if (eAct == MM::AfterSet) {
             long newState;
             pProp->Get(newState);
@@ -107,7 +111,7 @@ class SimObjectiveTurret : public CStateDeviceBase<SimObjectiveTurret> {
                 newState < static_cast<long>(objectives_.size())) {
                 state_ = newState;
             } else {
-                pProp->Set(state_);
+                pProp->Set(state_.load());
                 return DEVICE_INVALID_PROPERTY_VALUE;
             }
         }
@@ -115,7 +119,8 @@ class SimObjectiveTurret : public CStateDeviceBase<SimObjectiveTurret> {
     }
 
   private:
-    bool initialized_ = false;
     std::string name_;
-    long state_ = 0;
+    SimHub *hub_ = nullptr;
+    // Read by the camera thread via the hub
+    std::atomic<long> state_{0};
 };

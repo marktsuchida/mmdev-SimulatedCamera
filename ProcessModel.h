@@ -1,5 +1,3 @@
-// Mock device adapter for testing of device change notifications
-//
 // Copyright (C) 2024 Board of Regents of the University of Wisconsin System
 //
 // This file is distributed under the BSD license. License text is included
@@ -30,17 +28,20 @@
 #include <utility>
 
 // Models of physical device state. SyncProcessModel and AsyncProcessModel have
-// the same compile-time interface. Member functions are not thread-safe: they
-// must be called with external synchronization.
+// the same compile-time interface.
 //
 // SyncProcessModel issues change notifications synchronously (i.e., from the
-// thread setting the value) and never becomes busy.
+// thread setting the value) and never becomes busy. Its member functions are
+// not thread-safe: they must be called with external synchronization.
 //
 // AsyncProcessModel separates setpoint from process variable; the latter is
 // slewed so that it reaches the setpoint over time (so the model is "busy"
 // while still slewing). Change notifications are periodically issued from a
 // background thread during the slewing, with the last notification always
-// occuring when the PV reaches the SP.
+// occuring when the PV reaches the SP. The mutating member functions
+// (Setpoint(value), Halt(), and the rate/interval setters) must be called with
+// external synchronization; ProcessVariable(), Setpoint(), and IsSlewing() may
+// be called from any thread.
 
 template <std::size_t Dim> class SyncProcessModel {
     using ValueType = std::array<double, Dim>;
@@ -267,6 +268,7 @@ template <std::size_t Dim> class AsyncProcessModel {
         stopCv_.notify_one();
         slewThread_.join();
 
+        std::lock_guard<std::mutex> lock(mut_);
         setpoint_ = procVar_;
     }
 
@@ -274,8 +276,11 @@ template <std::size_t Dim> class AsyncProcessModel {
         assert(std::all_of(setpoint.cbegin(), setpoint.cend(),
                            [](double v) { return std::isfinite(v); }));
         Halt(); // Cancel previous slew, if any, updating last PV
-        setpoint_ = setpoint;
-        if (procVar_ == setpoint_) {
+        {
+            std::lock_guard<std::mutex> lock(mut_);
+            setpoint_ = setpoint;
+        }
+        if (procVar_ == setpoint) {
             return;
         }
 

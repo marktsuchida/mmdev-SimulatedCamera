@@ -20,11 +20,15 @@ class SimFocus : public CStageBase<SimFocus<ProcModel>> {
     static constexpr double umPerStep_ = 0.1;
 
     std::string name_;
-    ProcModel model_;
+    SimHub *hub_ = nullptr;
     DelayedNotifier delayer_;
 
     std::mutex notificationMut_;
     bool notificationsEnabled_ = false;
+
+    // Declared last so that it is destroyed first: its slew thread's update
+    // function uses the members above.
+    ProcModel model_;
 
   public:
     explicit SimFocus(std::string name)
@@ -44,11 +48,18 @@ class SimFocus : public CStageBase<SimFocus<ProcModel>> {
                   this->OnStagePositionChanged(umPerStep_ * ipv);
               });
           }) {
-        // Adjust default for stage-like velocity (100 um/s).
-        model_.ReciprocalSlewRateSeconds(0.01 * umPerStep_);
+        if constexpr (ProcModel::isAsync) {
+            // Adjust default for stage-like velocity (100 um/s).
+            model_.ReciprocalSlewRateSeconds(0.01 * umPerStep_);
+        }
     }
 
     int Initialize() final {
+        hub_ = static_cast<SimHub *>(this->GetParentHub());
+        if (!hub_) {
+            return DEVICE_COMM_HUB_MISSING;
+        }
+
         int ret = this->CreateFloatProperty("UmPerStep", umPerStep_, true);
         assert(ret == DEVICE_OK);
 
@@ -98,7 +109,7 @@ class SimFocus : public CStageBase<SimFocus<ProcModel>> {
                 }));
         assert(ret == DEVICE_OK);
 
-        if (ProcModel::isAsync) {
+        if constexpr (ProcModel::isAsync) {
             ret = this->CreateFloatProperty(
                 "SlewTimePerStep_s", model_.ReciprocalSlewRateSeconds(), false,
                 new MM::ActionLambda(
@@ -158,8 +169,7 @@ class SimFocus : public CStageBase<SimFocus<ProcModel>> {
         }
         (void)ret;
 
-        auto *hub = static_cast<SimHub *>(this->GetParentHub());
-        hub->SetGetFocusUmFunction([this] {
+        hub_->SetGetFocusUmFunction([this] {
             double z_um;
             // Technically the specimen Z may differ from the software Z um,
             // but we treat them as the same thing for nowa.
@@ -171,8 +181,10 @@ class SimFocus : public CStageBase<SimFocus<ProcModel>> {
     }
 
     int Shutdown() final {
-        auto *hub = static_cast<SimHub *>(this->GetParentHub());
-        hub->SetGetFocusUmFunction([] { return 0.0; });
+        if (hub_) {
+            hub_->SetGetFocusUmFunction([] { return 0.0; });
+            hub_ = nullptr;
+        }
         model_.Halt();
         delayer_.CancelAll();
         return DEVICE_OK;
