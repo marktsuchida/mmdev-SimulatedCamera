@@ -1,3 +1,4 @@
+#include "Detector.h"
 #include "Gaussian2DFilter.h"
 #include "Specimen.h"
 
@@ -7,11 +8,11 @@
 #include <vector>
 
 void bm_filaments_specimen_draw(benchmark::State &state) {
-    FilamentsSpecimen<std::uint16_t> specimen;
+    FilamentsSpecimen specimen;
     const auto z_um = double(state.range(0));
     const std::size_t width = 512, height = 512;
-    std::vector<std::uint16_t> buffer(width * height);
-    auto *data = buffer.data();
+    std::vector<float> signal(width * height);
+    auto *data = signal.data();
     for ([[maybe_unused]] auto _ : state) {
         specimen.Draw(data, 0.0, 0.0, z_um, width, height, 0.2, 1.4f, 1000.0);
         benchmark::DoNotOptimize(data);
@@ -23,11 +24,11 @@ BENCHMARK(bm_filaments_specimen_draw)
     ->Unit(benchmark::kMillisecond);
 
 void bm_nuclei_specimen_draw(benchmark::State &state) {
-    NucleiSpecimen<std::uint16_t> specimen;
+    NucleiSpecimen specimen;
     const auto z_um = double(state.range(0));
     const std::size_t width = 512, height = 512;
-    std::vector<std::uint16_t> buffer(width * height);
-    auto *data = buffer.data();
+    std::vector<float> signal(width * height);
+    auto *data = signal.data();
     for ([[maybe_unused]] auto _ : state) {
         specimen.Draw(data, 0.0, 0.0, z_um, width, height, 0.2, 1.4f, 1000.0);
         benchmark::DoNotOptimize(data);
@@ -36,6 +37,25 @@ void bm_nuclei_specimen_draw(benchmark::State &state) {
 BENCHMARK(bm_nuclei_specimen_draw)
     ->Arg(0)
     ->Arg(50)
+    ->Unit(benchmark::kMillisecond);
+
+void bm_readout(benchmark::State &state) {
+    const auto level = float(state.range(0));
+    const std::size_t width = 512, height = 512;
+    std::vector<float> signal(width * height, level);
+    const float *signalData = level > 0.0f ? signal.data() : nullptr;
+    std::vector<std::uint16_t> out(width * height);
+    auto *outData = out.data();
+    rnd::mt19937 rng;
+    for ([[maybe_unused]] auto _ : state) {
+        ReadOut(signalData, outData, width * height, 50.0f, 100.0f, rng);
+        benchmark::DoNotOptimize(outData);
+    }
+}
+BENCHMARK(bm_readout)
+    ->Arg(0)
+    ->Arg(5)
+    ->Arg(1000)
     ->Unit(benchmark::kMillisecond);
 
 template <auto Func> void bm_gaussian_2d_filter(benchmark::State &state) {

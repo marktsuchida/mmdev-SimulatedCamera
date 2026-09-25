@@ -15,6 +15,7 @@ class SimHub : public HubBase<SimHub> {
     };
     std::function<double()> getMagnificationFunc_ = [] { return 1.0; };
     std::function<double()> getNAFunc_ = [] { return 1.0; };
+    std::function<bool()> getShutterOpenFunc_ = [] { return true; };
 
   public:
     explicit SimHub(std::string name) : name_(std::move(name)) {}
@@ -39,8 +40,13 @@ class SimHub : public HubBase<SimHub> {
 
     template <typename F> void SetGetNAFunction(F f) { getNAFunc_ = f; }
 
+    template <typename F> void SetGetShutterOpenFunction(F f) {
+        getShutterOpenFunc_ = f;
+    }
+
     double GetFocusUm() { return getFocusUmFunc_(); }
     std::pair<double, double> GetXYUm() { return getXYUmFunc_(); }
     double GetMagnification() { return getMagnificationFunc_(); }
     double GetNA() { return getNAFunc_(); }
+    bool IsShutterOpen() { return getShutterOpenFunc_(); }
 };

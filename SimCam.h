@@ -1,18 +1,23 @@
 #pragma once
 
+#include "Detector.h"
 #include "SimHub.h"
 #include "Specimen.h"
 
 #include "DeviceBase.h"
 
+#include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <cmath>
 #include <condition_variable>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 
 // In C++17 can make static constexpr member of SimCam
 constexpr double EXPOSURE_MS_MIN = 0.001;
@@ -27,8 +32,8 @@ class SimCam : public CCameraBase<SimCam> {
     static constexpr const char *modeFilaments_ = "Filaments";
     static constexpr const char *modeNuclei_ = "Nuclei";
 
-    FilamentsSpecimen<std::uint16_t> filamentsSpecimen_;
-    NucleiSpecimen<std::uint16_t> nucleiSpecimen_;
+    FilamentsSpecimen filamentsSpecimen_;
+    NucleiSpecimen nucleiSpecimen_;
     std::string mode_ = modeFilaments_;
 
     // Camera state
@@ -40,6 +45,9 @@ class SimCam : public CCameraBase<SimCam> {
 
     // Last snap (always equal to ROI width/height)
     std::unique_ptr<std::uint16_t[]> snapBuffer_;
+
+    std::vector<float> signal_;
+    rnd::mt19937 rng_;
 
     // Sequence acquisition state
     std::thread seqThread_;
@@ -139,13 +147,23 @@ class SimCam : public CCameraBase<SimCam> {
         const double intensity = 2800.0 * GetExposure() * GetBinning() *
                                  GetBinning() * (na * na * na * na) /
                                  (magnification * magnification);
-        if (mode_ == modeNuclei_) {
-            nucleiSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
-                                 roiHeight_, umPerPx, na, intensity);
-        } else {
-            filamentsSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
-                                    roiHeight_, umPerPx, na, intensity);
+        const float *signal = nullptr;
+        if (hub->IsShutterOpen()) {
+            signal_.resize(nPixels);
+            if (mode_ == modeNuclei_) {
+                nucleiSpecimen_.Draw(signal_.data(), x, y, z, roiWidth_,
+                                     roiHeight_, umPerPx, na, intensity);
+            } else {
+                filamentsSpecimen_.Draw(signal_.data(), x, y, z, roiWidth_,
+                                        roiHeight_, umPerPx, na, intensity);
+            }
+            signal = signal_.data();
         }
+        // TODO: Make read noise and offset adjustable?
+        constexpr float readNoise = 50.0f;
+        constexpr float darkOffset = 100.0f;
+        ReadOut(signal, snapBuffer_.get(), nPixels, readNoise, darkOffset,
+                rng_);
 
         std::chrono::duration<double, std::milli> exposure(GetExposure());
         const auto finishTime =
