@@ -37,11 +37,16 @@ F FastPoisson(F lambda, RNG &rng,
 template <typename RNG>
 void ReadOut(const float *signal, std::uint16_t *out, std::size_t nPixels,
              float readNoise, float offset, RNG &rng) {
-    rnd::normal_distribution<float> readNoiseDistrib(0.0f, readNoise);
+    const bool hasReadNoise = readNoise > 0.0f;
+    rnd::normal_distribution<float> readNoiseDistrib(
+        0.0f, hasReadNoise ? readNoise : 1.0f);
     rnd::uniform_real_distribution<float> uniformDistForPoisson(0.0f, 1.0f);
     const float maxVal = float(std::numeric_limits<std::uint16_t>::max());
     for (std::size_t i = 0; i < nPixels; ++i) {
-        float v = offset + readNoiseDistrib(rng);
+        float v = offset;
+        if (hasReadNoise) {
+            v += readNoiseDistrib(rng);
+        }
         if (signal && signal[i] > 0.0f) {
             v += FastPoisson(signal[i], rng, uniformDistForPoisson);
         }
