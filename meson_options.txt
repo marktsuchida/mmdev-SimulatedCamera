@@ -1,3 +1,6 @@
+# Copyright 2025-2026 Board of Regents of the University of Wisconsin System
+# SPDX-License-Identifier: BSD-2-Clause
+
 option('benchmarks', type: 'feature', value: 'auto',
        description: 'Enable performance benchmarks')
 option('use_boost', type: 'feature', value: 'auto',

@@ -1,3 +1,6 @@
+# Copyright 2025-2026 Board of Regents of the University of Wisconsin System
+# SPDX-License-Identifier: BSD-2-Clause
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
@@ -8,3 +11,7 @@ repos:
     rev: v23.1.1
     hooks:
       - id: clang-format
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v6.2.0
+    hooks:
+      - id: reuse-lint-file
