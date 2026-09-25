@@ -12,7 +12,7 @@
 #include "ModuleInterface.h"
 
 MODULE_API void InitializeModuleData() {
-    RegisterDevice("SimHub", MM::HubDevice, "Hub for simulated camera");
+    RegisterDevice("SimHub", MM::HubDevice, "Hub for simulated microscope");
 }
 
 MODULE_API MM::Device *CreateDevice(const char *name) {
