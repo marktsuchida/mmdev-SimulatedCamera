@@ -1,3 +1,6 @@
+// Copyright 2025-2026 Board of Regents of the University of Wisconsin System
+// SPDX-License-Identifier: BSD-2-Clause
+
 #pragma once
 
 #include "Gaussian2DFilter.h"

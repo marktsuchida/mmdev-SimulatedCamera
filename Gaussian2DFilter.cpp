@@ -1,3 +1,6 @@
+// Copyright 2025-2026 Board of Regents of the University of Wisconsin System
+// SPDX-License-Identifier: BSD-2-Clause
+
 // Implementation of fast 2D Gaussian filtering according to:
 // Young IT, van Vliet LJ, 1995, Signal Processing 44:139-151.
 // Recursive implementation of the Gaussian filter.
