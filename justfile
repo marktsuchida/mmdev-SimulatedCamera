@@ -46,4 +46,4 @@ test: _configure_if_not_configured
 # Run benchmarks
 [positional-arguments]
 benchmark *FLAGS: build
-    ./builddir/bench_SimulatedCamera "$@"
+    ./builddir/bench_SimulatedMicroscope "$@"

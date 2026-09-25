@@ -5,7 +5,7 @@
 # of the supported build system for Micro-Manager or mmCoreAndDevices (yet).
 
 project(
-    'mmdev-SimulatedCamera',
+    'mmdev-SimulatedMicroscope',
     'cpp',
     meson_version: '>= 1.8.3',
     default_options: [
@@ -71,7 +71,7 @@ if highway_dep.found()
 endif
 
 shared_module(
-    'SimulatedCamera',
+    'SimulatedMicroscope',
     sources,
     dependencies: [
         mmdevice_dep,
@@ -86,10 +86,10 @@ shared_module(
 )
 
 test_exe = executable(
-    'test_SimulatedCamera',
+    'test_SimulatedMicroscope',
     sources
     + [
-        'test_SimulatedCamera.cpp',
+        'test_SimulatedMicroscope.cpp',
     ],
     dependencies: [
         mmdevice_dep,
@@ -101,10 +101,10 @@ test_exe = executable(
     cpp_args: cpp_args,
 )
 
-test('SimulatedCamera tests', test_exe)
+test('SimulatedMicroscope tests', test_exe)
 
 bench_exe = executable(
-    'bench_SimulatedCamera',
+    'bench_SimulatedMicroscope',
     [
         'Gaussian2DFilter.cpp',
         'bench_SimulatedSpecimen.cpp',
@@ -118,4 +118,4 @@ bench_exe = executable(
     cpp_args: cpp_args,
 )
 
-benchmark('SimulatedCamera benchmarks', bench_exe)
+benchmark('SimulatedMicroscope benchmarks', bench_exe)

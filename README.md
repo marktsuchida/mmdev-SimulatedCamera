@@ -3,7 +3,7 @@ Copyright 2025-2026 Board of Regents of the University of Wisconsin System
 SPDX-License-Identifier: BSD-2-Clause
 -->
 
-# SimulatedCamera
+# SimulatedMicroscope
 
 A Micro-Manager device adapter that simulates a simple microscope. Like
 DemoCamera, it needs no hardware, but its images are more realistic. The
@@ -45,11 +45,11 @@ just test
 
 ## Installing
 
-The build produces `builddir/SimulatedCamera.mmdev`. Currently, you need to
+The build produces `builddir/SimulatedMicroscope.mmdev`. Currently, you need to
 copy this file into your Micro-Manager installation directory and rename it:
 
-| Platform | File name                       |
-| -------- | ------------------------------- |
-| Windows  | `mmgr_dal_SimulatedCamera.dll`  |
-| Linux    | `mmgr_dal_SimulatedCamera.so.0` |
-| macOS    | `mmgr_dal_SimulatedCamera`      |
+| Platform | File name                           |
+| -------- | ----------------------------------- |
+| Windows  | `mmgr_dal_SimulatedMicroscope.dll`  |
+| Linux    | `mmgr_dal_SimulatedMicroscope.so.0` |
+| macOS    | `mmgr_dal_SimulatedMicroscope`      |
