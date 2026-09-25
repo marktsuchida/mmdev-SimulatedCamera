@@ -15,10 +15,11 @@ configure BUILDTYPE *FLAGS:
         {{FLAGS}}
 
 # Configure with optional features enabled
-configure-for-release:
+configure-for-release *FLAGS:
     @just configure release \
         -Duse_boost=enabled \
-        -Duse_simd=enabled -Dsimd_dynamic_dispatch=enabled
+        -Duse_simd=enabled -Dsimd_dynamic_dispatch=enabled \
+        {{FLAGS}}
 
 _configure_if_not_configured:
     #!/usr/bin/env bash

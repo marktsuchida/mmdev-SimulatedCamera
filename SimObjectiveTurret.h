@@ -1,7 +1,7 @@
 #pragma once
 
-#include "SimHub.h"
 #include "DeviceBase.h"
+#include "SimHub.h"
 
 #include <array>
 #include <cstddef>
@@ -26,14 +26,12 @@ class SimObjectiveTurret : public CStateDeviceBase<SimObjectiveTurret> {
         {100, 1.4, "Oil"},
     }};
 
-public:
-    SimObjectiveTurret(std::string name): name_(std::move(name)) {
+  public:
+    SimObjectiveTurret(std::string name) : name_(std::move(name)) {
         InitializeDefaultErrorMessages();
     }
 
-    ~SimObjectiveTurret() {
-        Shutdown();
-    }
+    ~SimObjectiveTurret() { Shutdown(); }
 
     int Initialize() final {
         int ret{};
@@ -54,14 +52,15 @@ public:
 
         // State
         // -----
-        CPropertyAction* pAct = new CPropertyAction (this, &SimObjectiveTurret::OnState);
+        CPropertyAction *pAct =
+            new CPropertyAction(this, &SimObjectiveTurret::OnState);
         ret = CreateIntegerProperty(MM::g_Keyword_State, 0, false, pAct);
         if (ret != DEVICE_OK)
             return ret;
 
         // Label
         // -----
-        pAct = new CPropertyAction (this, &CStateBase::OnLabel);
+        pAct = new CPropertyAction(this, &CStateBase::OnLabel);
         ret = CreateStringProperty(MM::g_Keyword_Label, "", false, pAct);
         if (ret != DEVICE_OK)
             return ret;
@@ -88,21 +87,24 @@ public:
         return DEVICE_OK;
     }
 
-    void GetName(char* name) const final {
+    void GetName(char *name) const final {
         CDeviceUtils::CopyLimitedString(name, name_.c_str());
     }
 
-    bool Busy() {return false;};
+    bool Busy() { return false; };
 
-    unsigned long GetNumberOfPositions() const {return static_cast<long>(objectives_.size());}
+    unsigned long GetNumberOfPositions() const {
+        return static_cast<long>(objectives_.size());
+    }
 
-    int OnState(MM::PropertyBase* pProp, MM::ActionType eAct) {
+    int OnState(MM::PropertyBase *pProp, MM::ActionType eAct) {
         if (eAct == MM::BeforeGet) {
             pProp->Set(state_);
         } else if (eAct == MM::AfterSet) {
             long newState;
             pProp->Get(newState);
-            if (newState >= 0 && newState < static_cast<long>(objectives_.size())) {
+            if (newState >= 0 &&
+                newState < static_cast<long>(objectives_.size())) {
                 state_ = newState;
             } else {
                 pProp->Set(state_);
@@ -112,7 +114,7 @@ public:
         return DEVICE_OK;
     }
 
-private:
+  private:
     bool initialized_ = false;
     std::string name_;
     long state_ = 0;

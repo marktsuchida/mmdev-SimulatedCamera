@@ -163,8 +163,7 @@ class SimXY : public CXYStageBase<SimXY<ProcModel>> {
 
     int Shutdown() final {
         auto *hub = static_cast<SimHub *>(this->GetParentHub());
-        hub->SetGetXYUmFunction(
-            [] { return std::make_pair(0.0, 0.0); });
+        hub->SetGetXYUmFunction([] { return std::make_pair(0.0, 0.0); });
         model_.Halt();
         delayer_.CancelAll();
         return DEVICE_OK;
