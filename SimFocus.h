@@ -159,7 +159,7 @@ class SimFocus : public CStageBase<SimFocus<ProcModel>> {
         (void)ret;
 
         auto *hub = static_cast<SimHub *>(this->GetParentHub());
-        hub->SetGetSpecimenFocusUmFunction([this] {
+        hub->SetGetFocusUmFunction([this] {
             double z_um;
             // Technically the specimen Z may differ from the software Z um,
             // but we treat them as the same thing for nowa.
@@ -172,7 +172,7 @@ class SimFocus : public CStageBase<SimFocus<ProcModel>> {
 
     int Shutdown() final {
         auto *hub = static_cast<SimHub *>(this->GetParentHub());
-        hub->SetGetSpecimenFocusUmFunction([] { return 0.0; });
+        hub->SetGetFocusUmFunction([] { return 0.0; });
         model_.Halt();
         delayer_.CancelAll();
         return DEVICE_OK;

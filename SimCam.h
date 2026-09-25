@@ -92,21 +92,33 @@ class SimCam : public CCameraBase<SimCam> {
         const auto startTime = std::chrono::steady_clock::now();
 
         auto *hub = static_cast<SimHub *>(GetParentHub());
-        const auto z = hub->GetSpecimenFocusUm();
-        const auto xy = hub->GetSpecimenXYUm();
+        const auto z = hub->GetFocusUm();
+        const auto xy = hub->GetXYUm();
 
         const std::size_t nPixels = roiWidth_ * roiHeight_;
         snapBuffer_ =
             std::unique_ptr<std::uint16_t[]>(new std::uint16_t[nPixels]);
 
-        constexpr double umPerPx = 1.0; // TODO Objective/mag
-        const double x = xy.first - umPerPx * double(roiX_);
-        const double y = -xy.second - umPerPx * double(roiY_);
-        // TODO: Intensity could also change with objective mag and NA
-        const double intensity =
-            0.05 * GetExposure() * GetBinning() * GetBinning();
+        const double magnification = hub->GetMagnification();
+        const double na = hub->GetNA();
+        // 10um is a reasonable size for a CMOS pixel side length
+        // and it makes pixel configuration simple.
+        const double umPerPx = 10.0 / magnification;
+        // FOV center is -stagePosition (needed for tiles to align).
+        const double fovCenterX = xy.first;
+        const double fovCenterY = -xy.second;
+        const double x =
+            fovCenterX - umPerPx * (double(roiX_) - double(sensorWidth_) / 2.0);
+        const double y =
+            fovCenterY -
+            umPerPx * (double(roiY_) - double(sensorHeight_) / 2.0);
+        // Derive intensity using epi-illumination formula
+        const double intensity = 2800.0 * GetExposure() *
+                                 GetBinning() * GetBinning() *
+                                 (na * na * na * na) /
+                                 (magnification * magnification);
         specimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_, roiHeight_,
-                       umPerPx, intensity);
+                       umPerPx, na, intensity);
 
         std::chrono::duration<double, std::milli> exposure(GetExposure());
         const auto finishTime =
