@@ -1,6 +1,7 @@
 #include "SimCam.h"
 #include "SimFocus.h"
 #include "SimHub.h"
+#include "SimObjectiveTurret.h"
 #include "SimShutter.h"
 #include "SimXY.h"
 
@@ -28,6 +29,9 @@ MODULE_API MM::Device *CreateDevice(const char *name) {
     }
     if (n == "SimXY") {
         return new SimXY<AsyncProcessModel<2>>("SimXY");
+    }
+    if (n == "SimObjectiveTurret") {
+        return new SimObjectiveTurret("SimObjectiveTurret");
     }
     if (n == "SimShutter") {
         return new SimShutter("SimShutter");

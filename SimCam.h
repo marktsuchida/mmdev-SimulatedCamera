@@ -1,14 +1,17 @@
 #pragma once
 
 #include "SimHub.h"
-#include "SimulatedSpecimen.h"
+#include "Specimen.h"
 
 #include "DeviceBase.h"
 
+#include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <cmath>
 #include <condition_variable>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -24,7 +27,12 @@ class SimCam : public CCameraBase<SimCam> {
     static constexpr unsigned sensorWidth_ = 512;
     static constexpr unsigned sensorHeight_ = 512;
 
-    SimulatedSpecimen<std::uint16_t> specimen_;
+    static constexpr const char *modeFilaments_ = "Filaments";
+    static constexpr const char *modeNuclei_ = "Nuclei";
+
+    FilamentsSpecimen<std::uint16_t> filamentsSpecimen_;
+    NucleiSpecimen<std::uint16_t> nucleiSpecimen_;
+    std::string mode_ = modeFilaments_;
 
     // Camera state
     double exposure_ms_ = 100.0;
@@ -75,6 +83,25 @@ class SimCam : public CCameraBase<SimCam> {
         assert(ret == DEVICE_OK);
         ret = AddAllowedValue(MM::g_Keyword_Binning, "1");
         assert(ret == DEVICE_OK);
+
+        ret =
+            CreateProperty("Mode", mode_.c_str(), MM::String, false,
+                           new MM::ActionLambda([this](MM::PropertyBase *pProp,
+                                                       MM::ActionType eAct) {
+                               if (eAct == MM::BeforeGet) {
+                                   pProp->Set(mode_.c_str());
+                               } else if (eAct == MM::AfterSet) {
+                                   std::string value;
+                                   pProp->Get(value);
+                                   mode_ = value;
+                               }
+                               return DEVICE_OK;
+                           }));
+        assert(ret == DEVICE_OK);
+        ret = AddAllowedValue("Mode", modeFilaments_);
+        assert(ret == DEVICE_OK);
+        ret = AddAllowedValue("Mode", modeNuclei_);
+        assert(ret == DEVICE_OK);
         (void)ret;
 
         return DEVICE_OK;
@@ -95,23 +122,38 @@ class SimCam : public CCameraBase<SimCam> {
         const auto startTime = std::chrono::steady_clock::now();
 
         auto *hub = static_cast<SimHub *>(GetParentHub());
-        const auto z = hub->GetSpecimenFocusUm();
-        const auto xy = hub->GetSpecimenXYUm();
+        const auto z = hub->GetFocusUm();
+        const auto xy = hub->GetXYUm();
 
         const std::size_t nPixels = roiWidth_ * roiHeight_;
         snapBuffer_ =
             std::unique_ptr<std::uint16_t[]>(new std::uint16_t[nPixels]);
 
-        constexpr double umPerPx = 1.0; // TODO Objective/mag
+        const double magnification = hub->GetMagnification();
+        const double na = hub->GetNA();
+        // 10um is a reasonable size for a CMOS pixel side length
+        // and it makes pixel configuration simple.
+        const double umPerPx = 10.0 / magnification;
+        // FOV center is -stagePosition (needed for tiles to align).
+        const double fovCenterX = xy.first;
+        const double fovCenterY = -xy.second;
+        const double x = fovCenterX - umPerPx * (double(roiX_) -
+                                                 double(sensorWidth_) / 2.0);
+        const double y = fovCenterY - umPerPx * (double(roiY_) -
+                                                 double(sensorHeight_) / 2.0);
+        // Derive intensity using epi-illumination formula
+        const double intensity = 2800.0 * GetExposure() * GetBinning() *
+                                 GetBinning() * (na * na * na * na) /
+                                 (magnification * magnification);
         DrawDark(snapBuffer_.get(), roiWidth_, roiHeight_);
         if (hub->IsShutterOpen()) {
-            const double x = xy.first - umPerPx * double(roiX_);
-            const double y = -xy.second - umPerPx * double(roiY_);
-            // TODO: Intensity could also change with objective mag and NA
-            const double intensity =
-                0.05 * GetExposure() * GetBinning() * GetBinning();
-            specimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_, roiHeight_,
-                           umPerPx, intensity);
+            if (mode_ == modeNuclei_) {
+                nucleiSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
+                                     roiHeight_, umPerPx, na, intensity);
+            } else {
+                filamentsSpecimen_.Draw(snapBuffer_.get(), x, y, z, roiWidth_,
+                                        roiHeight_, umPerPx, na, intensity);
+            }
         }
 
         std::chrono::duration<double, std::milli> exposure(GetExposure());
@@ -247,7 +289,8 @@ class SimCam : public CCameraBase<SimCam> {
     }
 
   private:
-    void DrawDark(std::uint16_t *buffer, std::size_t width, std::size_t height) {
+    void DrawDark(std::uint16_t *buffer, std::size_t width,
+                  std::size_t height) {
         // Gaussian (~read) noise and dark offset (TODO: adjustable?)
         const float darkOffset = 100.0f;
         const float maxVal = float(std::numeric_limits<std::uint16_t>::max());

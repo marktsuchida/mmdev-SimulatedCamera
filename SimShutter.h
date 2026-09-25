@@ -10,7 +10,7 @@ class SimShutter : public CShutterBase<SimShutter> {
     // Shutter state
     bool isOpen_ = false;
 
-public:
+  public:
     explicit SimShutter(std::string name) : name_(std::move(name)) {}
 
     bool Busy() final {
@@ -18,13 +18,11 @@ public:
         return false;
     }
 
-    void GetName(char* name) const {
+    void GetName(char *name) const {
         CDeviceUtils::CopyLimitedString(name, name_.c_str());
     }
-    
-    int Fire(double /*deltaT*/) final {
-        return DEVICE_UNSUPPORTED_COMMAND;
-    }
+
+    int Fire(double /*deltaT*/) final { return DEVICE_UNSUPPORTED_COMMAND; }
 
     int Initialize() final {
         isOpen_ = false;
@@ -47,7 +45,7 @@ public:
         return DEVICE_OK;
     }
 
-    int GetOpen(bool& open) {
+    int GetOpen(bool &open) {
         open = isOpen_;
         return DEVICE_OK;
     }
