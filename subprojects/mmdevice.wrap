@@ -3,7 +3,7 @@
 
 [wrap-git]
 url = https://github.com/micro-manager/mmdevice.git
-revision = HEAD
+revision = 47db7e017c79d784dafbd8b1a374186e1dd4019a
 depth = 1
 
 [provide]
