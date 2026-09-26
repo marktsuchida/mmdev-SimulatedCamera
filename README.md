@@ -48,8 +48,8 @@ just test
 The build produces `builddir/SimulatedMicroscope.mmdev`. Currently, you need to
 copy this file into your Micro-Manager installation directory and rename it:
 
-| Platform | File name                           |
-| -------- | ----------------------------------- |
-| Windows  | `mmgr_dal_SimulatedMicroscope.dll`  |
-| Linux    | `mmgr_dal_SimulatedMicroscope.so.0` |
-| macOS    | `mmgr_dal_SimulatedMicroscope`      |
+| Platform | File name                              |
+| -------- | -------------------------------------- |
+| Windows  | `mmgr_dal_SimulatedMicroscope.dll`     |
+| Linux    | `libmmgr_dal_SimulatedMicroscope.so.0` |
+| macOS    | `libmmgr_dal_SimulatedMicroscope`      |
