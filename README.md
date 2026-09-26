@@ -45,8 +45,19 @@ just test
 
 ## Installing
 
-The build produces `builddir/SimulatedMicroscope.mmdev`. Currently, you need to
-copy this file into your Micro-Manager installation directory and rename it:
+Prebuilt binaries are available on the
+[Releases](https://github.com/marktsuchida/mmdev-SimulatedMicroscope/releases)
+page. Unzip the file for your platform into your Micro-Manager installation
+directory.
+
+On macOS, the binaries are not signed, so Gatekeeper will usually block a file
+downloaded with a web browser. Download with `curl -LO <url>` instead, or
+remove the quarantine attribute from the extracted file with
+`xattr -d com.apple.quarantine libmmgr_dal_SimulatedMicroscope`.
+
+If you build from source, the build produces
+`builddir/SimulatedMicroscope.mmdev`. Copy this file into your Micro-Manager
+installation directory and rename it:
 
 | Platform | File name                              |
 | -------- | -------------------------------------- |

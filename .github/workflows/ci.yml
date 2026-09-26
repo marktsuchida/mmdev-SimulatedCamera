@@ -6,6 +6,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -181,3 +182,36 @@ jobs:
           name: mmdev-SimulatedMicroscope-${{ matrix.platform }}
           path: dist/
           if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [lint, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: mmdev-SimulatedMicroscope-*
+          path: artifacts
+
+      # Zipped because the macOS arm64 and x86_64 files have the same name.
+      - name: Zip artifacts
+        working-directory: artifacts
+        run: |
+          for dir in */; do
+            name="${dir%/}"
+            (cd "$name" && zip "../$name-$GITHUB_REF_NAME.zip" *)
+          done
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME"
+          --repo "$GITHUB_REPOSITORY"
+          --draft
+          --verify-tag
+          --title "$GITHUB_REF_NAME"
+          --generate-notes
+          artifacts/*.zip
